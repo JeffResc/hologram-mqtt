@@ -1,0 +1,6 @@
+.git
+.github
+*.md
+LICENSE
+.golangci.yml
+config.example.yaml
