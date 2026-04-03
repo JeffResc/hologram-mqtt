@@ -62,7 +62,7 @@ func defaults() Config {
 	return Config{
 		MQTT: MQTTConfig{
 			ClientID:    "hologram-mqtt",
-			TopicPrefix: "hologram-mqtt",
+			TopicPrefix: "hologram",
 		},
 		Discovery: DiscoveryConfig{
 			Prefix:  "homeassistant",

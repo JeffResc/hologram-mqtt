@@ -21,7 +21,7 @@ mqtt:
 
   # Topic prefix for all MQTT messages (default: hologram-mqtt)
   # Can also be set via MQTT_TOPIC_PREFIX environment variable
-  topic_prefix: "hologram-mqtt"
+  topic_prefix: "hologram"
 
   # TLS configuration for MQTT broker connections
   tls:

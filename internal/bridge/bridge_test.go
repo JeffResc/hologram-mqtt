@@ -53,7 +53,7 @@ func testConfig() *config.Config {
 		Hologram: config.HologramConfig{APIKey: "test-key"},
 		MQTT: config.MQTTConfig{
 			Broker:      "tcp://localhost:1883",
-			TopicPrefix: "hologram-mqtt",
+			TopicPrefix: "hologram",
 			ClientID:    "test",
 		},
 		Discovery: config.DiscoveryConfig{
@@ -89,7 +89,7 @@ func TestBridgeInitialPoll(t *testing.T) {
 
 	// Should have subscribed to command topic
 	require.Len(t, mockMQTT.Subscribed, 1)
-	assert.Equal(t, "hologram-mqtt/device/+/switch/set", mockMQTT.Subscribed[0].Topic)
+	assert.Equal(t, "hologram/device/+/switch/set", mockMQTT.Subscribed[0].Topic)
 
 	// Should have published discovery configs + states
 	assert.True(t, len(mockMQTT.Published) > 0, "should have published messages")
@@ -119,23 +119,23 @@ func TestBridgeHandleCommand(t *testing.T) {
 	b.knownDevices[42] = testDevice()
 
 	// Simulate switch OFF command (pause)
-	b.handleCommand("hologram-mqtt/device/42/switch/set", []byte("OFF"))
+	b.handleCommand("hologram/device/42/switch/set", []byte("OFF"))
 
 	assert.Equal(t, 42, mockHolo.lastDeviceID)
 	assert.Equal(t, "pause", mockHolo.lastState)
 
 	// Verify state was published
-	swState := mockMQTT.FindPublished("hologram-mqtt/device/42/switch/state")
+	swState := mockMQTT.FindPublished("hologram/device/42/switch/state")
 	require.NotEmpty(t, swState)
 	assert.Equal(t, "OFF", string(swState[len(swState)-1].Payload))
 
 	// Clear and test ON command (resume)
 	mockMQTT.ClearPublished()
-	b.handleCommand("hologram-mqtt/device/42/switch/set", []byte("ON"))
+	b.handleCommand("hologram/device/42/switch/set", []byte("ON"))
 
 	assert.Equal(t, "live", mockHolo.lastState)
 
-	swState = mockMQTT.FindPublished("hologram-mqtt/device/42/switch/state")
+	swState = mockMQTT.FindPublished("hologram/device/42/switch/state")
 	require.NotEmpty(t, swState)
 	assert.Equal(t, "ON", string(swState[len(swState)-1].Payload))
 }
@@ -147,7 +147,7 @@ func TestBridgeHandleCommandInvalidPayload(t *testing.T) {
 	b := New(testConfig(), mockHolo, mockMQTT, testLogger())
 
 	// Invalid payload should not call SetDeviceState
-	b.handleCommand("hologram-mqtt/device/42/switch/set", []byte("INVALID"))
+	b.handleCommand("hologram/device/42/switch/set", []byte("INVALID"))
 	assert.Equal(t, 0, mockHolo.lastDeviceID)
 }
 
@@ -208,7 +208,7 @@ func TestBridgeAttributesJSON(t *testing.T) {
 	err := b.poll(context.Background())
 	require.NoError(t, err)
 
-	attrs := mockMQTT.FindPublished("hologram-mqtt/device/42/attributes")
+	attrs := mockMQTT.FindPublished("hologram/device/42/attributes")
 	require.NotEmpty(t, attrs)
 
 	var a map[string]interface{}
@@ -256,7 +256,7 @@ func TestBridgeDeviceWithNilFields(t *testing.T) {
 	require.NoError(t, err)
 
 	// Verify attributes published successfully with zero/empty values
-	attrs := mockMQTT.FindPublished("hologram-mqtt/device/99/attributes")
+	attrs := mockMQTT.FindPublished("hologram/device/99/attributes")
 	require.NotEmpty(t, attrs)
 
 	var a map[string]interface{}
@@ -268,7 +268,7 @@ func TestBridgeDeviceWithNilFields(t *testing.T) {
 	assert.Equal(t, float64(0), a["data_down"])
 
 	// Binary sensor should show OFF for PAUSED
-	conn := mockMQTT.FindPublished("hologram-mqtt/device/99/connectivity")
+	conn := mockMQTT.FindPublished("hologram/device/99/connectivity")
 	require.NotEmpty(t, conn)
 	assert.Equal(t, "OFF", string(conn[0].Payload))
 }
@@ -298,10 +298,10 @@ func TestBridgeSetDeviceStateError(t *testing.T) {
 	b.knownDevices[42] = testDevice()
 
 	// Command should not crash, state should remain unchanged
-	b.handleCommand("hologram-mqtt/device/42/switch/set", []byte("OFF"))
+	b.handleCommand("hologram/device/42/switch/set", []byte("OFF"))
 
 	// Should not have published any state updates
-	swState := mockMQTT.FindPublished("hologram-mqtt/device/42/switch/state")
+	swState := mockMQTT.FindPublished("hologram/device/42/switch/state")
 	assert.Empty(t, swState)
 
 	// Device state should still be LIVE
@@ -334,7 +334,7 @@ func TestBridgeHandleCommandUnknownDevice(t *testing.T) {
 	b := New(testConfig(), mockHolo, mockMQTT, testLogger())
 	// knownDevices is empty
 
-	b.handleCommand("hologram-mqtt/device/999/switch/set", []byte("ON"))
+	b.handleCommand("hologram/device/999/switch/set", []byte("ON"))
 	// Should not call SetDeviceState
 	assert.Equal(t, 0, mockHolo.stateCalls)
 }
@@ -345,7 +345,7 @@ func TestBridgeHandleCommandInvalidDeviceID(t *testing.T) {
 
 	b := New(testConfig(), mockHolo, mockMQTT, testLogger())
 
-	b.handleCommand("hologram-mqtt/device/notanumber/switch/set", []byte("ON"))
+	b.handleCommand("hologram/device/notanumber/switch/set", []byte("ON"))
 	assert.Equal(t, 0, mockHolo.stateCalls)
 }
 
@@ -375,11 +375,11 @@ func TestBridgeConcurrentCommands(t *testing.T) {
 		wg.Add(2)
 		go func() {
 			defer wg.Done()
-			b.handleCommand("hologram-mqtt/device/1/switch/set", []byte("OFF"))
+			b.handleCommand("hologram/device/1/switch/set", []byte("OFF"))
 		}()
 		go func() {
 			defer wg.Done()
-			b.handleCommand("hologram-mqtt/device/2/switch/set", []byte("ON"))
+			b.handleCommand("hologram/device/2/switch/set", []byte("ON"))
 		}()
 	}
 	wg.Wait()
@@ -412,7 +412,7 @@ func TestBridgeConcurrentPollAndCommand(t *testing.T) {
 		}()
 		go func() {
 			defer wg.Done()
-			b.handleCommand("hologram-mqtt/device/42/switch/set", []byte("OFF"))
+			b.handleCommand("hologram/device/42/switch/set", []byte("OFF"))
 		}()
 	}
 	wg.Wait()
@@ -441,7 +441,7 @@ func TestBridgeDiscoveryDisabled(t *testing.T) {
 	}
 
 	// Should still have published state topics
-	attrs := mockMQTT.FindPublished("hologram-mqtt/device/42/attributes")
+	attrs := mockMQTT.FindPublished("hologram/device/42/attributes")
 	assert.NotEmpty(t, attrs, "should still publish state even with discovery disabled")
 }
 
@@ -492,11 +492,11 @@ func TestBridgeDEADDeviceSwitchState(t *testing.T) {
 	err := b.poll(context.Background())
 	require.NoError(t, err)
 
-	sw := mockMQTT.FindPublished("hologram-mqtt/device/42/switch/state")
+	sw := mockMQTT.FindPublished("hologram/device/42/switch/state")
 	require.NotEmpty(t, sw)
 	assert.Equal(t, "OFF", string(sw[0].Payload))
 
-	conn := mockMQTT.FindPublished("hologram-mqtt/device/42/connectivity")
+	conn := mockMQTT.FindPublished("hologram/device/42/connectivity")
 	require.NotEmpty(t, conn)
 	assert.Equal(t, "OFF", string(conn[0].Payload))
 }

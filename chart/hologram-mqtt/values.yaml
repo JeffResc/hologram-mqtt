@@ -24,7 +24,7 @@ mqtt:
   username: ""
   password: ""
   clientId: "hologram-mqtt"
-  topicPrefix: "hologram-mqtt"
+  topicPrefix: "hologram"
   # Use an existing secret for MQTT credentials
   # The secret must contain keys "username" and "password"
   existingSecret: ""

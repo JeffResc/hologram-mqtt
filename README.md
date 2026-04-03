@@ -77,7 +77,7 @@ Configuration is loaded from a YAML file and/or environment variables. Environme
 | `MQTT_USERNAME` | `mqtt.username` | | MQTT username |
 | `MQTT_PASSWORD` | `mqtt.password` | | MQTT password |
 | `MQTT_CLIENT_ID` | `mqtt.client_id` | `hologram-mqtt` | MQTT client ID |
-| `MQTT_TOPIC_PREFIX` | `mqtt.topic_prefix` | `hologram-mqtt` | MQTT topic prefix |
+| `MQTT_TOPIC_PREFIX` | `mqtt.topic_prefix` | `hologram` | MQTT topic prefix |
 | `MQTT_TLS_ENABLED` | `mqtt.tls.enabled` | `false` | Enable TLS |
 | `MQTT_TLS_CA_CERT` | `mqtt.tls.ca_cert` | | Path to CA certificate |
 | `MQTT_TLS_CLIENT_CERT` | `mqtt.tls.client_cert` | | Path to client certificate |
@@ -96,12 +96,12 @@ See [config.example.yaml](config.example.yaml) for a documented example.
 ## MQTT Topics
 
 ```
-hologram-mqtt/status                              → Bridge online/offline (LWT)
-hologram-mqtt/device/<id>/availability            → Device availability
-hologram-mqtt/device/<id>/attributes              → Device attributes (JSON)
-hologram-mqtt/device/<id>/connectivity            → ON/OFF
-hologram-mqtt/device/<id>/switch/state            → ON/OFF (active/paused)
-hologram-mqtt/device/<id>/switch/set              → Command topic (ON/OFF)
+hologram/status                              → Bridge online/offline (LWT)
+hologram/device/<id>/availability            → Device availability
+hologram/device/<id>/attributes              → Device attributes (JSON)
+hologram/device/<id>/connectivity            → ON/OFF
+hologram/device/<id>/switch/state            → ON/OFF (active/paused)
+hologram/device/<id>/switch/set              → Command topic (ON/OFF)
 ```
 
 ## Development

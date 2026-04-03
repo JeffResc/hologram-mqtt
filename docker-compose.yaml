@@ -9,7 +9,7 @@ services:
       MQTT_USERNAME: "${MQTT_USERNAME:-}"
       MQTT_PASSWORD: "${MQTT_PASSWORD:-}"
       MQTT_CLIENT_ID: "hologram-mqtt"
-      MQTT_TOPIC_PREFIX: "hologram-mqtt"
+      MQTT_TOPIC_PREFIX: "hologram"
       DISCOVERY_PREFIX: "homeassistant"
       POLL_INTERVAL: "5m"
       LOG_LEVEL: "info"

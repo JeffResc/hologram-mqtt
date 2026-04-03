@@ -13,7 +13,7 @@ import (
 func TestDefaults(t *testing.T) {
 	cfg := defaults()
 	assert.Equal(t, "hologram-mqtt", cfg.MQTT.ClientID)
-	assert.Equal(t, "hologram-mqtt", cfg.MQTT.TopicPrefix)
+	assert.Equal(t, "hologram", cfg.MQTT.TopicPrefix)
 	assert.Equal(t, "homeassistant", cfg.Discovery.Prefix)
 	assert.True(t, cfg.Discovery.Enabled)
 	assert.Equal(t, 5*time.Minute, cfg.PollInterval)
