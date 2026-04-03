@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.1](https://github.com/JeffResc/hologram-mqtt/compare/hologram-mqtt-v1.1.0...hologram-mqtt-v1.1.1) (2026-04-03)
+
+
+### Bug Fixes
+
+* add org ID configuration to Helm chart ([a7c3a10](https://github.com/JeffResc/hologram-mqtt/commit/a7c3a100ed8d7e9120110767bfdd5e20791c49c8))
+
 ## [1.1.0](https://github.com/JeffResc/hologram-mqtt/compare/hologram-mqtt-v1.0.0...hologram-mqtt-v1.1.0) (2026-04-03)
 
 
