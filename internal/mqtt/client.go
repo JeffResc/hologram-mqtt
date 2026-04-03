@@ -2,8 +2,11 @@
 package mqtt
 
 import (
+	"crypto/tls"
+	"crypto/x509"
 	"fmt"
 	"log/slog"
+	"os"
 	"sync"
 	"time"
 
@@ -28,21 +31,31 @@ type ClientConfig struct {
 	Password    string
 	ClientID    string
 	TopicPrefix string
+	TLS         TLSConfig
+}
+
+// TLSConfig holds TLS settings for the MQTT connection.
+type TLSConfig struct {
+	Enabled    bool
+	CACert     string
+	ClientCert string
+	ClientKey  string
+	SkipVerify bool
 }
 
 type client struct {
-	paho         pahomqtt.Client
-	topicPrefix  string
-	logger       *slog.Logger
-	mu           sync.Mutex
+	paho          pahomqtt.Client
+	topicPrefix   string
+	logger        *slog.Logger
+	mu            sync.Mutex
 	subscriptions map[string]pahomqtt.MessageHandler
 }
 
 // NewClient creates and connects a new MQTT client with LWT configured.
 func NewClient(cfg ClientConfig, logger *slog.Logger) (Publisher, error) {
 	c := &client{
-		topicPrefix:  cfg.TopicPrefix,
-		logger:       logger,
+		topicPrefix:   cfg.TopicPrefix,
+		logger:        logger,
 		subscriptions: make(map[string]pahomqtt.MessageHandler),
 	}
 
@@ -66,6 +79,14 @@ func NewClient(cfg ClientConfig, logger *slog.Logger) (Publisher, error) {
 		opts.SetPassword(cfg.Password)
 	}
 
+	if cfg.TLS.Enabled {
+		tlsCfg, err := buildTLSConfig(cfg.TLS)
+		if err != nil {
+			return nil, fmt.Errorf("configuring MQTT TLS: %w", err)
+		}
+		opts.SetTLSConfig(tlsCfg)
+	}
+
 	c.paho = pahomqtt.NewClient(opts)
 
 	token := c.paho.Connect()
@@ -77,6 +98,34 @@ func NewClient(cfg ClientConfig, logger *slog.Logger) (Publisher, error) {
 	}
 
 	return c, nil
+}
+
+func buildTLSConfig(cfg TLSConfig) (*tls.Config, error) {
+	tlsCfg := &tls.Config{
+		InsecureSkipVerify: cfg.SkipVerify, //nolint:gosec // user-configured option
+	}
+
+	if cfg.CACert != "" {
+		caCert, err := os.ReadFile(cfg.CACert)
+		if err != nil {
+			return nil, fmt.Errorf("reading CA cert %s: %w", cfg.CACert, err)
+		}
+		pool := x509.NewCertPool()
+		if !pool.AppendCertsFromPEM(caCert) {
+			return nil, fmt.Errorf("failed to parse CA cert %s", cfg.CACert)
+		}
+		tlsCfg.RootCAs = pool
+	}
+
+	if cfg.ClientCert != "" && cfg.ClientKey != "" {
+		cert, err := tls.LoadX509KeyPair(cfg.ClientCert, cfg.ClientKey)
+		if err != nil {
+			return nil, fmt.Errorf("loading client cert/key: %w", err)
+		}
+		tlsCfg.Certificates = []tls.Certificate{cert}
+	}
+
+	return tlsCfg, nil
 }
 
 func (c *client) onConnect(_ pahomqtt.Client) {

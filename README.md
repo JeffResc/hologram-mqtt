@@ -8,6 +8,8 @@ Hologram.io MQTT Bridge for Home Assistant — exposes your Hologram cellular Io
 - **Real-time status** — Device state, connectivity, carrier, plan, IMEI, and data usage published to MQTT
 - **Pause/Resume control** — Toggle device data via Home Assistant switches (calls Hologram API)
 - **Configurable polling** — Device info refreshed on a configurable interval (default: 5 minutes)
+- **TLS support** — Optional TLS with custom CA, client certificates, and skip-verify for MQTT connections
+- **Health check** — Built-in `/healthz` HTTP endpoint for container orchestrators
 - **Lightweight** — Runs as a single Go binary in a distroless Docker container
 
 ## Entities Per Device
@@ -76,8 +78,15 @@ Configuration is loaded from a YAML file and/or environment variables. Environme
 | `MQTT_PASSWORD` | `mqtt.password` | | MQTT password |
 | `MQTT_CLIENT_ID` | `mqtt.client_id` | `hologram-mqtt` | MQTT client ID |
 | `MQTT_TOPIC_PREFIX` | `mqtt.topic_prefix` | `hologram-mqtt` | MQTT topic prefix |
+| `MQTT_TLS_ENABLED` | `mqtt.tls.enabled` | `false` | Enable TLS |
+| `MQTT_TLS_CA_CERT` | `mqtt.tls.ca_cert` | | Path to CA certificate |
+| `MQTT_TLS_CLIENT_CERT` | `mqtt.tls.client_cert` | | Path to client certificate |
+| `MQTT_TLS_CLIENT_KEY` | `mqtt.tls.client_key` | | Path to client private key |
+| `MQTT_TLS_SKIP_VERIFY` | `mqtt.tls.skip_verify` | `false` | Skip TLS verification |
 | `DISCOVERY_PREFIX` | `discovery.prefix` | `homeassistant` | HA discovery prefix |
 | `DISCOVERY_ENABLED` | `discovery.enabled` | `true` | Enable HA discovery |
+| `HEALTH_ENABLED` | `health.enabled` | `true` | Enable health endpoint |
+| `HEALTH_ADDR` | `health.addr` | `:8080` | Health server listen address |
 | `POLL_INTERVAL` | `poll_interval` | `5m` | Polling interval |
 | `LOG_LEVEL` | `log_level` | `info` | Log level |
 | `CONFIG_FILE` | | `config.yaml` | Path to config file |

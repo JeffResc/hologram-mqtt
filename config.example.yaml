@@ -23,6 +23,29 @@ mqtt:
   # Can also be set via MQTT_TOPIC_PREFIX environment variable
   topic_prefix: "hologram-mqtt"
 
+  # TLS configuration for MQTT broker connections
+  tls:
+    # Enable TLS (default: false)
+    # Can also be set via MQTT_TLS_ENABLED environment variable
+    enabled: false
+
+    # Path to CA certificate file for verifying the broker's certificate
+    # Can also be set via MQTT_TLS_CA_CERT environment variable
+    ca_cert: ""
+
+    # Path to client certificate file for mutual TLS authentication
+    # Can also be set via MQTT_TLS_CLIENT_CERT environment variable
+    client_cert: ""
+
+    # Path to client private key file for mutual TLS authentication
+    # Can also be set via MQTT_TLS_CLIENT_KEY environment variable
+    client_key: ""
+
+    # Skip TLS certificate verification (default: false)
+    # WARNING: Only use for testing — disables server certificate validation
+    # Can also be set via MQTT_TLS_SKIP_VERIFY environment variable
+    skip_verify: false
+
 # Home Assistant MQTT discovery configuration
 discovery:
   # Discovery topic prefix (default: homeassistant)
@@ -32,6 +55,16 @@ discovery:
   # Enable/disable discovery (default: true)
   # Can also be set via DISCOVERY_ENABLED environment variable
   enabled: true
+
+# Health check HTTP server
+health:
+  # Enable health check endpoint (default: true)
+  # Can also be set via HEALTH_ENABLED environment variable
+  enabled: true
+
+  # Listen address for health check server (default: :8080)
+  # Can also be set via HEALTH_ADDR environment variable
+  addr: ":8080"
 
 # How often to poll the Hologram API for device updates (default: 5m)
 # Can also be set via POLL_INTERVAL environment variable

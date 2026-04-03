@@ -168,3 +168,139 @@ func TestContextCancellation(t *testing.T) {
 	_, err := client.ListDevices(ctx)
 	require.Error(t, err)
 }
+
+// --- Edge case tests ---
+
+func TestListDevicesEmptyResponse(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		resp := DeviceListResponse{
+			Success:   true,
+			Continues: false,
+			Data:      []Device{},
+		}
+		json.NewEncoder(w).Encode(resp)
+	}))
+	defer server.Close()
+
+	client := NewClient("test-key", testLogger(), WithBaseURL(server.URL))
+	devices, err := client.ListDevices(context.Background())
+	require.NoError(t, err)
+	assert.Empty(t, devices)
+}
+
+func TestListDevicesSuccessFalse(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		resp := DeviceListResponse{
+			Success: false,
+			Data:    nil,
+		}
+		json.NewEncoder(w).Encode(resp)
+	}))
+	defer server.Close()
+
+	client := NewClient("test-key", testLogger(), WithBaseURL(server.URL))
+	_, err := client.ListDevices(context.Background())
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "success=false")
+}
+
+func TestListDevicesInvalidJSON(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte("not json"))
+	}))
+	defer server.Close()
+
+	client := NewClient("test-key", testLogger(), WithBaseURL(server.URL))
+	_, err := client.ListDevices(context.Background())
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "decoding device list")
+}
+
+func TestSetDeviceStateLive(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var req BatchStateRequest
+		require.NoError(t, json.NewDecoder(r.Body).Decode(&req))
+		assert.Equal(t, "live", req.State)
+
+		resp := BatchStateResponse{Success: true}
+		json.NewEncoder(w).Encode(resp)
+	}))
+	defer server.Close()
+
+	client := NewClient("test-key", testLogger(), WithBaseURL(server.URL))
+	err := client.SetDeviceState(context.Background(), 10, 42, "live")
+	require.NoError(t, err)
+}
+
+func TestSetDeviceStateSuccessFalse(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		resp := BatchStateResponse{Success: false}
+		json.NewEncoder(w).Encode(resp)
+	}))
+	defer server.Close()
+
+	client := NewClient("test-key", testLogger(), WithBaseURL(server.URL))
+	err := client.SetDeviceState(context.Background(), 10, 42, "pause")
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "success=false")
+}
+
+func TestSetDeviceStateServerError(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte("internal server error"))
+	}))
+	defer server.Close()
+
+	client := NewClient("test-key", testLogger(), WithBaseURL(server.URL))
+	err := client.SetDeviceState(context.Background(), 10, 42, "pause")
+	require.Error(t, err)
+
+	var apiErr *APIError
+	require.ErrorAs(t, err, &apiErr)
+	assert.Equal(t, http.StatusInternalServerError, apiErr.StatusCode)
+}
+
+func TestAPIErrorString(t *testing.T) {
+	err := &APIError{StatusCode: 403, Message: "forbidden"}
+	assert.Contains(t, err.Error(), "403")
+	assert.Contains(t, err.Error(), "forbidden")
+}
+
+func TestListDevicesWithNilOptionalFields(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Return a device with minimal fields (all optional fields missing/null)
+		w.Write([]byte(`{
+			"success": true,
+			"continues": false,
+			"data": [{
+				"id": 1,
+				"orgid": 10,
+				"name": "Minimal",
+				"state": "LIVE",
+				"plan": null,
+				"last_connection_time": null,
+				"recent_session_info": null,
+				"tags": null
+			}]
+		}`))
+	}))
+	defer server.Close()
+
+	client := NewClient("test-key", testLogger(), WithBaseURL(server.URL))
+	devices, err := client.ListDevices(context.Background())
+	require.NoError(t, err)
+	require.Len(t, devices, 1)
+	assert.Equal(t, "Minimal", devices[0].Name)
+	assert.Nil(t, devices[0].Plan)
+	assert.Nil(t, devices[0].LastConnectionTime)
+	assert.Nil(t, devices[0].RecentSessionInfo)
+}
+
+func TestWithHTTPClient(t *testing.T) {
+	// Verify the WithHTTPClient option works
+	customHTTP := &http.Client{}
+	client := NewClient("test-key", testLogger(), WithHTTPClient(customHTTP))
+	// Just verify it doesn't panic
+	assert.NotNil(t, client)
+}

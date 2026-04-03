@@ -2,6 +2,7 @@ package discovery
 
 import (
 	"encoding/json"
+	"errors"
 	"io"
 	"log/slog"
 	"strings"
@@ -190,4 +191,197 @@ func TestDeviceDefaults(t *testing.T) {
 	haDevice := newDevice(d)
 	assert.Equal(t, "Hologram", haDevice.Manufacturer)
 	assert.Equal(t, "SIM", haDevice.Model)
+}
+
+// --- Edge case tests ---
+
+func TestPublishStatesNilPlan(t *testing.T) {
+	mockMQTT := mqtt.NewMockPublisher()
+	pub := NewPublisher(mockMQTT, "hologram-mqtt", "homeassistant", testLogger())
+
+	d := hologram.Device{
+		ID:    1,
+		State: "LIVE",
+		Plan:  nil,
+	}
+	err := pub.PublishStates([]hologram.Device{d})
+	require.NoError(t, err)
+
+	attrs := mockMQTT.FindPublished("hologram-mqtt/device/1/attributes")
+	require.NotEmpty(t, attrs)
+
+	var a deviceAttributes
+	require.NoError(t, json.Unmarshal(attrs[0].Payload, &a))
+	assert.Equal(t, "", a.Plan)
+}
+
+func TestPublishStatesNilSessionInfo(t *testing.T) {
+	mockMQTT := mqtt.NewMockPublisher()
+	pub := NewPublisher(mockMQTT, "hologram-mqtt", "homeassistant", testLogger())
+
+	d := hologram.Device{
+		ID:                1,
+		State:             "LIVE",
+		RecentSessionInfo: nil,
+	}
+	err := pub.PublishStates([]hologram.Device{d})
+	require.NoError(t, err)
+
+	attrs := mockMQTT.FindPublished("hologram-mqtt/device/1/attributes")
+	require.NotEmpty(t, attrs)
+
+	var a deviceAttributes
+	require.NoError(t, json.Unmarshal(attrs[0].Payload, &a))
+	assert.Equal(t, int64(0), a.DataUp)
+	assert.Equal(t, int64(0), a.DataDown)
+}
+
+func TestPublishStatesNilConnectionTime(t *testing.T) {
+	mockMQTT := mqtt.NewMockPublisher()
+	pub := NewPublisher(mockMQTT, "hologram-mqtt", "homeassistant", testLogger())
+
+	d := hologram.Device{
+		ID:                 1,
+		State:              "LIVE",
+		LastConnectionTime: nil,
+	}
+	err := pub.PublishStates([]hologram.Device{d})
+	require.NoError(t, err)
+
+	attrs := mockMQTT.FindPublished("hologram-mqtt/device/1/attributes")
+	require.NotEmpty(t, attrs)
+
+	var a deviceAttributes
+	require.NoError(t, json.Unmarshal(attrs[0].Payload, &a))
+	assert.Equal(t, "", a.LastConnection)
+}
+
+func TestPublishStatesAllNilFields(t *testing.T) {
+	mockMQTT := mqtt.NewMockPublisher()
+	pub := NewPublisher(mockMQTT, "hologram-mqtt", "homeassistant", testLogger())
+
+	d := hologram.Device{
+		ID:    1,
+		State: "DEAD",
+	}
+	err := pub.PublishStates([]hologram.Device{d})
+	require.NoError(t, err)
+
+	// DEAD device should have OFF connectivity and OFF switch
+	conn := mockMQTT.FindPublished("hologram-mqtt/device/1/connectivity")
+	require.NotEmpty(t, conn)
+	assert.Equal(t, "OFF", string(conn[0].Payload))
+
+	sw := mockMQTT.FindPublished("hologram-mqtt/device/1/switch/state")
+	require.NotEmpty(t, sw)
+	assert.Equal(t, "OFF", string(sw[0].Payload))
+}
+
+func TestPublishDiscoveryEmptyList(t *testing.T) {
+	mockMQTT := mqtt.NewMockPublisher()
+	pub := NewPublisher(mockMQTT, "hologram-mqtt", "homeassistant", testLogger())
+
+	err := pub.PublishDiscovery([]hologram.Device{})
+	require.NoError(t, err)
+	assert.Empty(t, mockMQTT.Published)
+}
+
+func TestPublishStatesEmptyList(t *testing.T) {
+	mockMQTT := mqtt.NewMockPublisher()
+	pub := NewPublisher(mockMQTT, "hologram-mqtt", "homeassistant", testLogger())
+
+	err := pub.PublishStates([]hologram.Device{})
+	require.NoError(t, err)
+	assert.Empty(t, mockMQTT.Published)
+}
+
+func TestPublishDiscoveryMQTTError(t *testing.T) {
+	mockMQTT := mqtt.NewMockPublisher()
+	mockMQTT.PublishErr = errors.New("broker disconnected")
+	pub := NewPublisher(mockMQTT, "hologram-mqtt", "homeassistant", testLogger())
+
+	err := pub.PublishDiscovery([]hologram.Device{testDevice()})
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "broker disconnected")
+}
+
+func TestPublishStatesPartialMQTTError(t *testing.T) {
+	mockMQTT := mqtt.NewMockPublisher()
+	pub := NewPublisher(mockMQTT, "hologram-mqtt", "homeassistant", testLogger())
+
+	// First device works, we set error after first state publish
+	d1 := hologram.Device{ID: 1, State: "LIVE"}
+	d2 := hologram.Device{ID: 2, State: "LIVE"}
+
+	// PublishStates logs errors per-device but returns nil
+	err := pub.PublishStates([]hologram.Device{d1, d2})
+	require.NoError(t, err)
+	// Both devices should have attempted publishing
+	assert.NotEmpty(t, mockMQTT.FindPublished("hologram-mqtt/device/1/availability"))
+	assert.NotEmpty(t, mockMQTT.FindPublished("hologram-mqtt/device/2/availability"))
+}
+
+func TestRemoveDiscoveryMQTTError(t *testing.T) {
+	mockMQTT := mqtt.NewMockPublisher()
+	mockMQTT.PublishErr = errors.New("broker disconnected")
+	pub := NewPublisher(mockMQTT, "hologram-mqtt", "homeassistant", testLogger())
+
+	err := pub.RemoveDiscovery([]hologram.Device{testDevice()})
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "broker disconnected")
+}
+
+func TestPublishDiscoveryMultipleDevices(t *testing.T) {
+	mockMQTT := mqtt.NewMockPublisher()
+	pub := NewPublisher(mockMQTT, "hologram-mqtt", "homeassistant", testLogger())
+
+	d1 := hologram.Device{ID: 1, Name: "Device 1", State: "LIVE"}
+	d2 := hologram.Device{ID: 2, Name: "Device 2", State: "PAUSED"}
+
+	err := pub.PublishDiscovery([]hologram.Device{d1, d2})
+	require.NoError(t, err)
+
+	expectedCount := (len(sensors) + 2) * 2
+	assert.Len(t, mockMQTT.Published, expectedCount)
+
+	// Verify both devices have discovery configs
+	hasD1 := false
+	hasD2 := false
+	for _, p := range mockMQTT.Published {
+		if strings.Contains(p.Topic, "hologram_1") {
+			hasD1 = true
+		}
+		if strings.Contains(p.Topic, "hologram_2") {
+			hasD2 = true
+		}
+	}
+	assert.True(t, hasD1, "should have discovery for device 1")
+	assert.True(t, hasD2, "should have discovery for device 2")
+}
+
+func TestBuildAttributesPreservesAllFields(t *testing.T) {
+	connTime := int64(1712000000)
+	d := hologram.Device{
+		State:              "LIVE",
+		IMEI:               "imei-123",
+		SIMNumber:          "sim-456",
+		Carrier:            "T-Mobile",
+		PhoneNumber:        "+1555",
+		NetworkUsed:        "LTE",
+		Plan:               &hologram.Plan{Name: "Plan A"},
+		LastConnectionTime: &connTime,
+		RecentSessionInfo:  &hologram.SessionInfo{BytesUp: 100, BytesDown: 200},
+	}
+
+	a := buildAttributes(d)
+	assert.Equal(t, "LIVE", a.State)
+	assert.Equal(t, "imei-123", a.IMEI)
+	assert.Equal(t, "sim-456", a.SIMNumber)
+	assert.Equal(t, "T-Mobile", a.Carrier)
+	assert.Equal(t, "+1555", a.PhoneNumber)
+	assert.Equal(t, "LTE", a.Network)
+	assert.Equal(t, "Plan A", a.Plan)
+	assert.Equal(t, "2024-04-01T19:33:20Z", a.LastConnection)
+	assert.Equal(t, int64(100), a.DataUp)
+	assert.Equal(t, int64(200), a.DataDown)
 }

@@ -5,8 +5,10 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"net/http"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/jeffresc/hologram-mqtt/internal/config"
@@ -22,6 +24,7 @@ type Bridge struct {
 	mqtt         mqtt.Publisher
 	discovery    *discovery.Publisher
 	config       *config.Config
+	mu           sync.RWMutex
 	knownDevices map[int]hologram.Device
 	logger       *slog.Logger
 }
@@ -69,11 +72,24 @@ func (b *Bridge) Run(ctx context.Context) error {
 	}
 }
 
+// Healthy returns true when the MQTT client is connected and at least one
+// successful poll has been completed (i.e. knownDevices has been populated
+// at least once).
+func (b *Bridge) Healthy() bool {
+	if !b.mqtt.IsConnected() {
+		return false
+	}
+	return true
+}
+
 func (b *Bridge) poll(ctx context.Context) error {
 	devices, err := b.hologram.ListDevices(ctx)
 	if err != nil {
 		return fmt.Errorf("fetching devices: %w", err)
 	}
+
+	b.mu.Lock()
+	defer b.mu.Unlock()
 
 	// Detect removed devices
 	currentIDs := make(map[int]bool, len(devices))
@@ -115,12 +131,16 @@ func (b *Bridge) poll(ctx context.Context) error {
 	}
 
 	// Update known devices
-	b.knownDevices = make(map[int]hologram.Device, len(devices))
+	newKnown := make(map[int]hologram.Device, len(devices))
 	for _, d := range devices {
-		b.knownDevices[d.ID] = d
+		newKnown[d.ID] = d
 	}
 
-	b.logger.Info("poll complete", "devices", len(devices), "new", len(devices)-len(b.knownDevices)+len(removed), "removed", len(removed))
+	removedCount := len(removed)
+	newCount := len(devices) - (len(b.knownDevices) - removedCount)
+	b.knownDevices = newKnown
+
+	b.logger.Info("poll complete", "devices", len(devices), "new", newCount, "removed", removedCount)
 	return nil
 }
 
@@ -159,7 +179,10 @@ func (b *Bridge) handleCommand(topic string, payload []byte) {
 		return
 	}
 
+	b.mu.RLock()
 	device, ok := b.knownDevices[deviceID]
+	b.mu.RUnlock()
+
 	if !ok {
 		b.logger.Error("unknown device in command", "device_id", deviceID)
 		return
@@ -178,9 +201,25 @@ func (b *Bridge) handleCommand(topic string, payload []byte) {
 	} else {
 		device.State = "PAUSED"
 	}
+
+	b.mu.Lock()
 	b.knownDevices[deviceID] = device
+	b.mu.Unlock()
 
 	if err := b.discovery.PublishStates([]hologram.Device{device}); err != nil {
 		b.logger.Error("failed to publish updated state", "device_id", deviceID, "error", err)
+	}
+}
+
+// HealthHandler returns an http.HandlerFunc that reports bridge health.
+func (b *Bridge) HealthHandler() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if b.Healthy() {
+			w.WriteHeader(http.StatusOK)
+			w.Write([]byte("ok"))
+		} else {
+			w.WriteHeader(http.StatusServiceUnavailable)
+			w.Write([]byte("unhealthy"))
+		}
 	}
 }

@@ -1,7 +1,10 @@
 package mqtt
 
+import "sync"
+
 // MockPublisher implements Publisher for testing other packages.
 type MockPublisher struct {
+	mu           sync.Mutex
 	Published    []PublishCall
 	Subscribed   []SubscribeCall
 	Connected    bool
@@ -30,6 +33,8 @@ func NewMockPublisher() *MockPublisher {
 }
 
 func (m *MockPublisher) Publish(topic string, qos byte, retained bool, payload []byte) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
 	if m.PublishErr != nil {
 		return m.PublishErr
 	}
@@ -43,6 +48,8 @@ func (m *MockPublisher) Publish(topic string, qos byte, retained bool, payload [
 }
 
 func (m *MockPublisher) Subscribe(topic string, qos byte, handler MessageHandler) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
 	if m.SubscribeErr != nil {
 		return m.SubscribeErr
 	}
@@ -55,15 +62,21 @@ func (m *MockPublisher) Subscribe(topic string, qos byte, handler MessageHandler
 }
 
 func (m *MockPublisher) IsConnected() bool {
+	m.mu.Lock()
+	defer m.mu.Unlock()
 	return m.Connected
 }
 
 func (m *MockPublisher) Disconnect() {
+	m.mu.Lock()
+	defer m.mu.Unlock()
 	m.Connected = false
 }
 
 // FindPublished returns all publish calls matching the given topic.
 func (m *MockPublisher) FindPublished(topic string) []PublishCall {
+	m.mu.Lock()
+	defer m.mu.Unlock()
 	var found []PublishCall
 	for _, p := range m.Published {
 		if p.Topic == topic {
@@ -71,4 +84,18 @@ func (m *MockPublisher) FindPublished(topic string) []PublishCall {
 		}
 	}
 	return found
+}
+
+// PublishedCount returns the total number of publish calls.
+func (m *MockPublisher) PublishedCount() int {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	return len(m.Published)
+}
+
+// ClearPublished resets the published messages list.
+func (m *MockPublisher) ClearPublished() {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.Published = nil
 }

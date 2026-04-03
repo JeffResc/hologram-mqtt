@@ -16,6 +16,7 @@ type Config struct {
 	Hologram     HologramConfig  `yaml:"hologram"`
 	MQTT         MQTTConfig      `yaml:"mqtt"`
 	Discovery    DiscoveryConfig `yaml:"discovery"`
+	Health       HealthConfig    `yaml:"health"`
 	PollInterval time.Duration   `yaml:"poll_interval"`
 	LogLevel     string          `yaml:"log_level"`
 }
@@ -27,17 +28,33 @@ type HologramConfig struct {
 
 // MQTTConfig holds MQTT broker connection settings.
 type MQTTConfig struct {
-	Broker      string `yaml:"broker"`
-	Username    string `yaml:"username"`
-	Password    string `yaml:"password"`
-	ClientID    string `yaml:"client_id"`
-	TopicPrefix string `yaml:"topic_prefix"`
+	Broker      string    `yaml:"broker"`
+	Username    string    `yaml:"username"`
+	Password    string    `yaml:"password"`
+	ClientID    string    `yaml:"client_id"`
+	TopicPrefix string    `yaml:"topic_prefix"`
+	TLS         TLSConfig `yaml:"tls"`
+}
+
+// TLSConfig holds TLS settings for the MQTT connection.
+type TLSConfig struct {
+	Enabled    bool   `yaml:"enabled"`
+	CACert     string `yaml:"ca_cert"`
+	ClientCert string `yaml:"client_cert"`
+	ClientKey  string `yaml:"client_key"`
+	SkipVerify bool   `yaml:"skip_verify"`
 }
 
 // DiscoveryConfig holds Home Assistant MQTT discovery settings.
 type DiscoveryConfig struct {
 	Prefix  string `yaml:"prefix"`
 	Enabled bool   `yaml:"enabled"`
+}
+
+// HealthConfig holds health check HTTP server settings.
+type HealthConfig struct {
+	Enabled bool   `yaml:"enabled"`
+	Addr    string `yaml:"addr"`
 }
 
 // defaults returns a Config with default values.
@@ -50,6 +67,10 @@ func defaults() Config {
 		Discovery: DiscoveryConfig{
 			Prefix:  "homeassistant",
 			Enabled: true,
+		},
+		Health: HealthConfig{
+			Enabled: true,
+			Addr:    ":8080",
 		},
 		PollInterval: 5 * time.Minute,
 		LogLevel:     "info",
@@ -107,11 +128,32 @@ func applyEnv(cfg *Config) {
 	if v := os.Getenv("MQTT_TOPIC_PREFIX"); v != "" {
 		cfg.MQTT.TopicPrefix = v
 	}
+	if v := os.Getenv("MQTT_TLS_ENABLED"); v != "" {
+		cfg.MQTT.TLS.Enabled = v == "true" || v == "1"
+	}
+	if v := os.Getenv("MQTT_TLS_CA_CERT"); v != "" {
+		cfg.MQTT.TLS.CACert = v
+	}
+	if v := os.Getenv("MQTT_TLS_CLIENT_CERT"); v != "" {
+		cfg.MQTT.TLS.ClientCert = v
+	}
+	if v := os.Getenv("MQTT_TLS_CLIENT_KEY"); v != "" {
+		cfg.MQTT.TLS.ClientKey = v
+	}
+	if v := os.Getenv("MQTT_TLS_SKIP_VERIFY"); v != "" {
+		cfg.MQTT.TLS.SkipVerify = v == "true" || v == "1"
+	}
 	if v := os.Getenv("DISCOVERY_PREFIX"); v != "" {
 		cfg.Discovery.Prefix = v
 	}
 	if v := os.Getenv("DISCOVERY_ENABLED"); v != "" {
 		cfg.Discovery.Enabled = v == "true" || v == "1"
+	}
+	if v := os.Getenv("HEALTH_ENABLED"); v != "" {
+		cfg.Health.Enabled = v == "true" || v == "1"
+	}
+	if v := os.Getenv("HEALTH_ADDR"); v != "" {
+		cfg.Health.Addr = v
 	}
 	if v := os.Getenv("POLL_INTERVAL"); v != "" {
 		if d, err := time.ParseDuration(v); err == nil {
@@ -134,6 +176,14 @@ func validate(cfg *Config) error {
 	}
 	if cfg.PollInterval < 10*time.Second {
 		return fmt.Errorf("poll interval must be at least 10s, got %s", cfg.PollInterval)
+	}
+	if cfg.MQTT.TLS.Enabled {
+		if cfg.MQTT.TLS.ClientCert != "" && cfg.MQTT.TLS.ClientKey == "" {
+			return errors.New("MQTT TLS client key is required when client cert is set")
+		}
+		if cfg.MQTT.TLS.ClientKey != "" && cfg.MQTT.TLS.ClientCert == "" {
+			return errors.New("MQTT TLS client cert is required when client key is set")
+		}
 	}
 	return nil
 }

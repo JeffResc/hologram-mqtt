@@ -4,6 +4,7 @@ package main
 import (
 	"context"
 	"log/slog"
+	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
@@ -39,6 +40,13 @@ func main() {
 		Password:    cfg.MQTT.Password,
 		ClientID:    cfg.MQTT.ClientID,
 		TopicPrefix: cfg.MQTT.TopicPrefix,
+		TLS: mqtt.TLSConfig{
+			Enabled:    cfg.MQTT.TLS.Enabled,
+			CACert:     cfg.MQTT.TLS.CACert,
+			ClientCert: cfg.MQTT.TLS.ClientCert,
+			ClientKey:  cfg.MQTT.TLS.ClientKey,
+			SkipVerify: cfg.MQTT.TLS.SkipVerify,
+		},
 	}, logger)
 	if err != nil {
 		logger.Error("failed to connect to MQTT broker", "error", err)
@@ -49,6 +57,26 @@ func main() {
 
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
+
+	// Start health check server
+	if cfg.Health.Enabled {
+		mux := http.NewServeMux()
+		mux.HandleFunc("/healthz", b.HealthHandler())
+		healthServer := &http.Server{Addr: cfg.Health.Addr, Handler: mux}
+
+		go func() {
+			logger.Info("starting health check server", "addr", cfg.Health.Addr)
+			if err := healthServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+				logger.Error("health check server error", "error", err)
+			}
+		}()
+
+		defer func() {
+			if err := healthServer.Close(); err != nil {
+				logger.Error("failed to close health server", "error", err)
+			}
+		}()
+	}
 
 	if err := b.Run(ctx); err != nil {
 		logger.Error("bridge error", "error", err)
