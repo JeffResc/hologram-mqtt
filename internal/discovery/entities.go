@@ -42,8 +42,6 @@ func newAvailability(topicPrefix string, deviceID int) []Availability {
 	}
 }
 
-func strPtr(s string) *string { return &s }
-
 type sensorDef struct {
 	name           string
 	objectSuffix   string

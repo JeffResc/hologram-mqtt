@@ -150,7 +150,7 @@ func (p *Publisher) RemoveDiscovery(devices []hologram.Device) error {
 
 		// Clear availability
 		prefix := fmt.Sprintf("%s/device/%d", p.topicPrefix, d.ID)
-		p.mqtt.Publish(prefix+"/availability", 1, true, []byte("offline"))
+		_ = p.mqtt.Publish(prefix+"/availability", 1, true, []byte("offline"))
 
 		p.logger.Info("removed discovery configs", "device_id", d.ID, "name", d.Name)
 	}

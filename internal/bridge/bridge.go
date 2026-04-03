@@ -76,10 +76,7 @@ func (b *Bridge) Run(ctx context.Context) error {
 // successful poll has been completed (i.e. knownDevices has been populated
 // at least once).
 func (b *Bridge) Healthy() bool {
-	if !b.mqtt.IsConnected() {
-		return false
-	}
-	return true
+	return b.mqtt.IsConnected()
 }
 
 func (b *Bridge) poll(ctx context.Context) error {

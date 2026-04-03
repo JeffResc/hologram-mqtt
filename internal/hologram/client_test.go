@@ -36,7 +36,7 @@ func TestListDevicesSinglePage(t *testing.T) {
 				{ID: 2, Name: "Device 2", IMEI: "222", State: "PAUSED", OrgID: 10},
 			},
 		}
-		json.NewEncoder(w).Encode(resp)
+		_ = json.NewEncoder(w).Encode(resp)
 	}))
 	defer server.Close()
 
@@ -67,7 +67,7 @@ func TestListDevicesPagination(t *testing.T) {
 				Data:      []Device{{ID: 2, Name: "Device 2", OrgID: 10}},
 			}
 		}
-		json.NewEncoder(w).Encode(resp)
+		_ = json.NewEncoder(w).Encode(resp)
 	}))
 	defer server.Close()
 
@@ -81,7 +81,7 @@ func TestListDevicesPagination(t *testing.T) {
 func TestListDevicesAPIError(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusForbidden)
-		w.Write([]byte(`{"success":false,"error":"forbidden"}`))
+		_, _ = w.Write([]byte(`{"success":false,"error":"forbidden"}`))
 	}))
 	defer server.Close()
 
@@ -108,7 +108,7 @@ func TestSetDeviceState(t *testing.T) {
 
 		resp := BatchStateResponse{Success: true}
 		resp.Data.JobID = "job-123"
-		json.NewEncoder(w).Encode(resp)
+		_ = json.NewEncoder(w).Encode(resp)
 	}))
 	defer server.Close()
 
@@ -137,7 +137,7 @@ func TestRateLimitRetry(t *testing.T) {
 			Continues: false,
 			Data:      []Device{{ID: 1, Name: "Device 1"}},
 		}
-		json.NewEncoder(w).Encode(resp)
+		_ = json.NewEncoder(w).Encode(resp)
 	}))
 	defer server.Close()
 
@@ -178,7 +178,7 @@ func TestListDevicesEmptyResponse(t *testing.T) {
 			Continues: false,
 			Data:      []Device{},
 		}
-		json.NewEncoder(w).Encode(resp)
+		_ = json.NewEncoder(w).Encode(resp)
 	}))
 	defer server.Close()
 
@@ -194,7 +194,7 @@ func TestListDevicesSuccessFalse(t *testing.T) {
 			Success: false,
 			Data:    nil,
 		}
-		json.NewEncoder(w).Encode(resp)
+		_ = json.NewEncoder(w).Encode(resp)
 	}))
 	defer server.Close()
 
@@ -206,7 +206,7 @@ func TestListDevicesSuccessFalse(t *testing.T) {
 
 func TestListDevicesInvalidJSON(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte("not json"))
+		_, _ = w.Write([]byte("not json"))
 	}))
 	defer server.Close()
 
@@ -223,7 +223,7 @@ func TestSetDeviceStateLive(t *testing.T) {
 		assert.Equal(t, "live", req.State)
 
 		resp := BatchStateResponse{Success: true}
-		json.NewEncoder(w).Encode(resp)
+		_ = json.NewEncoder(w).Encode(resp)
 	}))
 	defer server.Close()
 
@@ -235,7 +235,7 @@ func TestSetDeviceStateLive(t *testing.T) {
 func TestSetDeviceStateSuccessFalse(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		resp := BatchStateResponse{Success: false}
-		json.NewEncoder(w).Encode(resp)
+		_ = json.NewEncoder(w).Encode(resp)
 	}))
 	defer server.Close()
 
@@ -248,7 +248,7 @@ func TestSetDeviceStateSuccessFalse(t *testing.T) {
 func TestSetDeviceStateServerError(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte("internal server error"))
+		_, _ = w.Write([]byte("internal server error"))
 	}))
 	defer server.Close()
 
@@ -270,7 +270,7 @@ func TestAPIErrorString(t *testing.T) {
 func TestListDevicesWithNilOptionalFields(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Return a device with minimal fields (all optional fields missing/null)
-		w.Write([]byte(`{
+		_, _ = w.Write([]byte(`{
 			"success": true,
 			"continues": false,
 			"data": [{
