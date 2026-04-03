@@ -56,6 +56,75 @@ services:
       POLL_INTERVAL: "5m"
 ```
 
+### Kubernetes (Helm)
+
+The Helm chart is published as an OCI artifact to `ghcr.io`.
+
+```bash
+helm install hologram-mqtt oci://ghcr.io/jeffresc/charts/hologram-mqtt \
+  --set hologram.apiKey=your_api_key \
+  --set mqtt.broker=tcp://mqtt:1883
+```
+
+To install a specific version:
+
+```bash
+helm install hologram-mqtt oci://ghcr.io/jeffresc/charts/hologram-mqtt --version 1.0.0
+```
+
+#### Using an Existing Secret
+
+Instead of passing the API key directly, you can reference a pre-existing Kubernetes secret:
+
+```bash
+kubectl create secret generic hologram-api \
+  --from-literal=api-key=your_api_key
+
+helm install hologram-mqtt oci://ghcr.io/jeffresc/charts/hologram-mqtt \
+  --set hologram.existingSecret=hologram-api \
+  --set mqtt.broker=tcp://mqtt:1883
+```
+
+Similarly for MQTT credentials:
+
+```bash
+kubectl create secret generic mqtt-creds \
+  --from-literal=username=myuser \
+  --from-literal=password=mypass
+
+helm install hologram-mqtt oci://ghcr.io/jeffresc/charts/hologram-mqtt \
+  --set hologram.apiKey=your_api_key \
+  --set mqtt.broker=tcp://mqtt:1883 \
+  --set mqtt.existingSecret=mqtt-creds
+```
+
+#### Custom Values File
+
+For more complex configurations, create a `values.yaml` file:
+
+```yaml
+hologram:
+  apiKey: "your_api_key"
+
+mqtt:
+  broker: "tcp://mqtt:1883"
+  username: "user"
+  password: "pass"
+  tls:
+    enabled: true
+    caSecret: "mqtt-ca"
+    clientCertSecret: "mqtt-client-cert"
+
+pollInterval: "10m"
+logLevel: "debug"
+```
+
+```bash
+helm install hologram-mqtt oci://ghcr.io/jeffresc/charts/hologram-mqtt -f values.yaml
+```
+
+See [`chart/values.yaml`](chart/values.yaml) for all available options.
+
 ### Binary
 
 ```bash
