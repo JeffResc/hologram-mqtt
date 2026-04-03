@@ -1,0 +1,57 @@
+services:
+  hologram-mqtt:
+    image: ghcr.io/jeffresc/hologram-mqtt:latest
+    container_name: hologram-mqtt
+    restart: unless-stopped
+    environment:
+      HOLOGRAM_API_KEY: "${HOLOGRAM_API_KEY}"
+      HOLOGRAM_ORG_ID: "${HOLOGRAM_ORG_ID:-}"
+      MQTT_BROKER: "tcp://mqtt:1883"
+      MQTT_USERNAME: "${MQTT_USERNAME:-}"
+      MQTT_PASSWORD: "${MQTT_PASSWORD:-}"
+      MQTT_CLIENT_ID: "hologram-mqtt"
+      MQTT_TOPIC_PREFIX: "hologram"
+      DISCOVERY_PREFIX: "homeassistant"
+      POLL_INTERVAL: "5m"
+      LOG_LEVEL: "info"
+      # TLS settings (uncomment to enable)
+      # MQTT_TLS_ENABLED: "true"
+      # MQTT_TLS_CA_CERT: "/certs/ca.pem"
+      # MQTT_TLS_CLIENT_CERT: "/certs/client.pem"
+      # MQTT_TLS_CLIENT_KEY: "/certs/client-key.pem"
+      # MQTT_TLS_SKIP_VERIFY: "false"
+    # volumes:
+    #   - ./certs:/certs:ro
+    ports:
+      - "8080:8080"
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/healthz"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    depends_on:
+      mqtt:
+        condition: service_healthy
+
+  mqtt:
+    image: eclipse-mosquitto:2
+    container_name: mosquitto
+    restart: unless-stopped
+    ports:
+      - "1883:1883"
+    volumes:
+      - mosquitto_data:/mosquitto/data
+      - mosquitto_log:/mosquitto/log
+      # Uncomment and create a mosquitto.conf for custom configuration
+      # - ./mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+    healthcheck:
+      test: ["CMD", "mosquitto_sub", "-t", "$$SYS/#", "-C", "1", "-i", "healthcheck", "-W", "3"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
+
+volumes:
+  mosquitto_data:
+  mosquitto_log:

@@ -1,0 +1,80 @@
+# Hologram API configuration
+hologram:
+  # API key from Hologram dashboard (Settings > API)
+  # Can also be set via HOLOGRAM_API_KEY environment variable
+  api_key: ""
+
+  # Organization ID (optional, required if your API key has access to multiple orgs)
+  # Can also be set via HOLOGRAM_ORG_ID environment variable
+  org_id: 0
+
+# MQTT broker configuration
+mqtt:
+  # Broker address (required)
+  # Can also be set via MQTT_BROKER environment variable
+  broker: "tcp://localhost:1883"
+
+  # Broker credentials (optional)
+  # Can also be set via MQTT_USERNAME / MQTT_PASSWORD environment variables
+  username: ""
+  password: ""
+
+  # MQTT client ID (default: hologram-mqtt)
+  # Can also be set via MQTT_CLIENT_ID environment variable
+  client_id: "hologram-mqtt"
+
+  # Topic prefix for all MQTT messages (default: hologram-mqtt)
+  # Can also be set via MQTT_TOPIC_PREFIX environment variable
+  topic_prefix: "hologram"
+
+  # TLS configuration for MQTT broker connections
+  tls:
+    # Enable TLS (default: false)
+    # Can also be set via MQTT_TLS_ENABLED environment variable
+    enabled: false
+
+    # Path to CA certificate file for verifying the broker's certificate
+    # Can also be set via MQTT_TLS_CA_CERT environment variable
+    ca_cert: ""
+
+    # Path to client certificate file for mutual TLS authentication
+    # Can also be set via MQTT_TLS_CLIENT_CERT environment variable
+    client_cert: ""
+
+    # Path to client private key file for mutual TLS authentication
+    # Can also be set via MQTT_TLS_CLIENT_KEY environment variable
+    client_key: ""
+
+    # Skip TLS certificate verification (default: false)
+    # WARNING: Only use for testing — disables server certificate validation
+    # Can also be set via MQTT_TLS_SKIP_VERIFY environment variable
+    skip_verify: false
+
+# Home Assistant MQTT discovery configuration
+discovery:
+  # Discovery topic prefix (default: homeassistant)
+  # Can also be set via DISCOVERY_PREFIX environment variable
+  prefix: "homeassistant"
+
+  # Enable/disable discovery (default: true)
+  # Can also be set via DISCOVERY_ENABLED environment variable
+  enabled: true
+
+# Health check HTTP server
+health:
+  # Enable health check endpoint (default: true)
+  # Can also be set via HEALTH_ENABLED environment variable
+  enabled: true
+
+  # Listen address for health check server (default: :8080)
+  # Can also be set via HEALTH_ADDR environment variable
+  addr: ":8080"
+
+# How often to poll the Hologram API for device updates (default: 5m)
+# Can also be set via POLL_INTERVAL environment variable
+# Accepts Go duration strings (e.g., "5m", "30s", "1h") or seconds as integer
+poll_interval: 5m
+
+# Log level: debug, info, warn, error (default: info)
+# Can also be set via LOG_LEVEL environment variable
+log_level: info

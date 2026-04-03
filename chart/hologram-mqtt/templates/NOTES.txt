@@ -1,0 +1,21 @@
+hologram-mqtt has been deployed!
+
+{{- if not .Values.hologram.apiKey }}
+{{- if not .Values.hologram.existingSecret }}
+
+WARNING: No Hologram API key configured!
+Set hologram.apiKey or hologram.existingSecret in your values.
+{{- end }}
+{{- end }}
+
+To check the health of the deployment:
+
+  kubectl get pods -l "app.kubernetes.io/name={{ include "hologram-mqtt.name" . }},app.kubernetes.io/instance={{ .Release.Name }}"
+
+{{- if .Values.health.enabled }}
+
+To access the health endpoint:
+
+  kubectl port-forward svc/{{ include "hologram-mqtt.fullname" . }} {{ .Values.service.port }}:{{ .Values.service.port }}
+  curl http://localhost:{{ .Values.service.port }}/healthz
+{{- end }}

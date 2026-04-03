@@ -1,0 +1,107 @@
+replicaCount: 1
+
+image:
+  repository: ghcr.io/jeffresc/hologram-mqtt
+  pullPolicy: IfNotPresent
+  # Overrides the image tag whose default is the chart appVersion
+  tag: ""
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+# Hologram API configuration
+hologram:
+  # API key from Hologram dashboard (Settings > API)
+  apiKey: ""
+  # Use an existing secret instead of creating one
+  # The secret must contain a key named "api-key"
+  existingSecret: ""
+
+# MQTT broker configuration
+mqtt:
+  broker: "tcp://mqtt:1883"
+  username: ""
+  password: ""
+  clientId: "hologram-mqtt"
+  topicPrefix: "hologram"
+  # Use an existing secret for MQTT credentials
+  # The secret must contain keys "username" and "password"
+  existingSecret: ""
+  tls:
+    enabled: false
+    caSecret: ""
+    caKey: "ca.crt"
+    clientCertSecret: ""
+    clientCertKey: "tls.crt"
+    clientKeyKey: "tls.key"
+    skipVerify: false
+
+# Home Assistant discovery
+discovery:
+  prefix: "homeassistant"
+  enabled: true
+
+# Polling interval for Hologram API
+pollInterval: "5m"
+
+# Log level: debug, info, warn, error
+logLevel: "info"
+
+# Health check HTTP server
+health:
+  enabled: true
+  port: 8080
+
+serviceAccount:
+  create: true
+  automount: true
+  annotations: {}
+  name: ""
+
+podAnnotations: {}
+podLabels: {}
+
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 65534
+  runAsGroup: 65534
+  fsGroup: 65534
+
+securityContext:
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  capabilities:
+    drop:
+      - ALL
+
+service:
+  type: ClusterIP
+  port: 8080
+
+resources:
+  limits:
+    memory: 64Mi
+  requests:
+    cpu: 10m
+    memory: 32Mi
+
+livenessProbe:
+  httpGet:
+    path: /healthz
+    port: health
+  initialDelaySeconds: 5
+  periodSeconds: 30
+
+readinessProbe:
+  httpGet:
+    path: /healthz
+    port: health
+  initialDelaySeconds: 5
+  periodSeconds: 10
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}
