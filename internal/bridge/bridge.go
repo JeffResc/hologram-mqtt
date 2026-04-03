@@ -213,10 +213,10 @@ func (b *Bridge) HealthHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if b.Healthy() {
 			w.WriteHeader(http.StatusOK)
-			w.Write([]byte("ok"))
+			_, _ = w.Write([]byte("ok"))
 		} else {
 			w.WriteHeader(http.StatusServiceUnavailable)
-			w.Write([]byte("unhealthy"))
+			_, _ = w.Write([]byte("unhealthy"))
 		}
 	}
 }
