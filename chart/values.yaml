@@ -17,6 +17,9 @@ hologram:
   # Use an existing secret instead of creating one
   # The secret must contain a key named "api-key"
   existingSecret: ""
+  # Optional: Organization ID to filter devices by org
+  # Set to a positive integer to enable org filtering
+  orgId: 0
 
 # MQTT broker configuration
 mqtt:
