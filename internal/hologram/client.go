@@ -45,9 +45,17 @@ func WithHTTPClient(doer HTTPDoer) Option {
 	}
 }
 
+// WithOrgID sets the organization ID to filter API requests.
+func WithOrgID(orgID int) Option {
+	return func(c *httpClient) {
+		c.orgID = orgID
+	}
+}
+
 type httpClient struct {
 	baseURL string
 	apiKey  string
+	orgID   int
 	http    HTTPDoer
 	logger  *slog.Logger
 }
@@ -73,6 +81,9 @@ func (c *httpClient) ListDevices(ctx context.Context) ([]Device, error) {
 
 	for {
 		url := fmt.Sprintf("%s/devices?limit=%d", c.baseURL, defaultPageSize)
+		if c.orgID > 0 {
+			url += fmt.Sprintf("&orgid=%d", c.orgID)
+		}
 		if startAfter > 0 {
 			url += fmt.Sprintf("&startafter=%d", startAfter)
 		}

@@ -24,6 +24,7 @@ type Config struct {
 // HologramConfig holds Hologram API settings.
 type HologramConfig struct {
 	APIKey string `yaml:"api_key"`
+	OrgID  int    `yaml:"org_id"`
 }
 
 // MQTTConfig holds MQTT broker connection settings.
@@ -112,6 +113,11 @@ func loadFile(path string, cfg *Config) error {
 func applyEnv(cfg *Config) {
 	if v := os.Getenv("HOLOGRAM_API_KEY"); v != "" {
 		cfg.Hologram.APIKey = v
+	}
+	if v := os.Getenv("HOLOGRAM_ORG_ID"); v != "" {
+		if id, err := strconv.Atoi(v); err == nil {
+			cfg.Hologram.OrgID = id
+		}
 	}
 	if v := os.Getenv("MQTT_BROKER"); v != "" {
 		cfg.MQTT.Broker = v

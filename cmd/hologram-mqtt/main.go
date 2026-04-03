@@ -32,7 +32,11 @@ func main() {
 	logger := setupLogger(cfg.LogLevel)
 	logger.Info("starting hologram-mqtt", "version", version)
 
-	hc := hologram.NewClient(cfg.Hologram.APIKey, logger)
+	var holoOpts []hologram.Option
+	if cfg.Hologram.OrgID > 0 {
+		holoOpts = append(holoOpts, hologram.WithOrgID(cfg.Hologram.OrgID))
+	}
+	hc := hologram.NewClient(cfg.Hologram.APIKey, logger, holoOpts...)
 
 	mc, err := mqtt.NewClient(mqtt.ClientConfig{
 		Broker:      cfg.MQTT.Broker,

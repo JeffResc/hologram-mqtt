@@ -4,6 +4,10 @@ hologram:
   # Can also be set via HOLOGRAM_API_KEY environment variable
   api_key: ""
 
+  # Organization ID (optional, required if your API key has access to multiple orgs)
+  # Can also be set via HOLOGRAM_ORG_ID environment variable
+  org_id: 0
+
 # MQTT broker configuration
 mqtt:
   # Broker address (required)

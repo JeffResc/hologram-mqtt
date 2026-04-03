@@ -73,6 +73,7 @@ Configuration is loaded from a YAML file and/or environment variables. Environme
 | Environment Variable | Config Key | Default | Description |
 |---|---|---|---|
 | `HOLOGRAM_API_KEY` | `hologram.api_key` | (required) | Hologram API key |
+| `HOLOGRAM_ORG_ID` | `hologram.org_id` | | Organization ID (if multi-org) |
 | `MQTT_BROKER` | `mqtt.broker` | (required) | MQTT broker address |
 | `MQTT_USERNAME` | `mqtt.username` | | MQTT username |
 | `MQTT_PASSWORD` | `mqtt.password` | | MQTT password |

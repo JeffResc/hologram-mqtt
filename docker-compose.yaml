@@ -5,6 +5,7 @@ services:
     restart: unless-stopped
     environment:
       HOLOGRAM_API_KEY: "${HOLOGRAM_API_KEY}"
+      HOLOGRAM_ORG_ID: "${HOLOGRAM_ORG_ID:-}"
       MQTT_BROKER: "tcp://mqtt:1883"
       MQTT_USERNAME: "${MQTT_USERNAME:-}"
       MQTT_PASSWORD: "${MQTT_PASSWORD:-}"
