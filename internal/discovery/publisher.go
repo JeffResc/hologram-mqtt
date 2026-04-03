@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"log/slog"
-	"time"
 
 	"github.com/jeffresc/hologram-mqtt/internal/hologram"
 	"github.com/jeffresc/hologram-mqtt/internal/mqtt"
@@ -100,61 +99,64 @@ func (p *Publisher) publishDeviceState(d hologram.Device) error {
 
 // deviceAttributes is the JSON published to the attributes topic.
 type deviceAttributes struct {
-	State          string `json:"state"`
-	IMEI           string `json:"imei"`
-	SIMNumber      string `json:"sim_number"`
-	Carrier        string `json:"carrier"`
-	Plan           string `json:"plan"`
-	PhoneNumber    string `json:"phone_number"`
-	LastConnection string `json:"last_connection"`
-	Network        string `json:"network"`
-	DataUp         int64  `json:"data_up"`
-	DataDown       int64  `json:"data_down"`
+	State              string `json:"state"`
+	IMEI               string `json:"imei"`
+	ICCID              string `json:"iccid"`
+	IMSI               string `json:"imsi"`
+	Carrier            string `json:"carrier"`
+	Plan               string `json:"plan"`
+	PhoneNumber        string `json:"phone_number"`
+	LastConnection     string `json:"last_connection"`
+	Network            string `json:"network"`
+	RadioTech          string `json:"radio_tech"`
+	CurBillingDataUsed int64  `json:"cur_billing_data_used"`
+	LastBillingDataUsed int64 `json:"last_billing_data_used"`
+	SessionActive      bool   `json:"session_active"`
+	DeviceID           int    `json:"device_id"`
+	OrgID              int    `json:"org_id"`
+	LinkID             int    `json:"link_id"`
+	EID                string `json:"eid"`
+	ProfileState       string `json:"profile_state"`
 }
 
 func buildAttributes(d hologram.Device) deviceAttributes {
 	attrs := deviceAttributes{
-		State:       d.EffectiveState(),
-		IMEI:        d.IMEI,
-		SIMNumber:   d.SIMNumber,
-		Carrier:     d.Carrier.String(),
-		PhoneNumber: d.PhoneNumber,
-		Network:     d.NetworkUsed,
+		State:    d.EffectiveState(),
+		IMEI:     d.IMEI,
+		DeviceID: d.ID,
+		OrgID:    d.OrgID,
 	}
 
-	if d.Plan != nil {
-		attrs.Plan = d.Plan.Name
+	// Pull from last session (top-level on device)
+	if d.LastSession != nil {
+		attrs.Network = d.LastSession.NetworkName
+		attrs.RadioTech = d.LastSession.RadioTech
+		attrs.SessionActive = d.LastSession.Active
+		if d.LastSession.SessionBegin != "" && d.LastSession.SessionBegin != "0000-00-00 00:00:00" {
+			attrs.LastConnection = d.LastSession.SessionBegin
+		}
 	}
 
-	if d.LastConnectionTime != nil {
-		t := time.Unix(*d.LastConnectionTime, 0).UTC()
-		attrs.LastConnection = t.Format(time.RFC3339)
-	}
-
-	if d.RecentSessionInfo != nil {
-		attrs.DataUp = d.RecentSessionInfo.BytesUp
-		attrs.DataDown = d.RecentSessionInfo.BytesDown
-	}
-
-	// Fill in missing fields from the primary cellular link
+	// Pull from the primary cellular link
 	if link := d.PrimaryCellularLink(); link != nil {
-		if attrs.State == "" {
-			attrs.State = link.State
-		}
-		if attrs.SIMNumber == "" {
-			attrs.SIMNumber = link.SIM
-		}
-		if attrs.Carrier == "" {
-			attrs.Carrier = link.CarrierID.String()
-		}
-		if attrs.PhoneNumber == "" {
-			attrs.PhoneNumber = link.MSISDN
+		attrs.LinkID = link.ID
+		attrs.ICCID = link.SIM
+		attrs.IMSI = fmt.Sprintf("%d", link.IMSI)
+		attrs.PhoneNumber = link.MSISDN
+		attrs.Carrier = link.CarrierID.String()
+		attrs.CurBillingDataUsed = link.CurBillingDataUsed
+		attrs.LastBillingDataUsed = link.LastBillingDataUsed
+		attrs.EID = link.EID
+		attrs.ProfileState = link.ProfileState
+
+		if link.Plan != nil {
+			attrs.Plan = link.Plan.Name
 		}
 		if attrs.LastConnection == "" && link.LastConnectTime != "" {
 			attrs.LastConnection = link.LastConnectTime
 		}
-		if link.Plan != nil && attrs.Plan == "" {
-			attrs.Plan = link.Plan.Name
+		if attrs.Network == "" && link.LastNetworkUsed != "" {
+			attrs.Network = link.LastNetworkUsed
 		}
 	}
 

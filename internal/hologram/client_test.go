@@ -32,8 +32,8 @@ func TestListDevicesSinglePage(t *testing.T) {
 			Success:   true,
 			Continues: false,
 			Data: []Device{
-				{ID: 1, Name: "Device 1", IMEI: "111", State: "LIVE", OrgID: 10},
-				{ID: 2, Name: "Device 2", IMEI: "222", State: "PAUSED", OrgID: 10},
+				{ID: 1, Name: "Device 1", IMEI: "111", OrgID: 10},
+				{ID: 2, Name: "Device 2", IMEI: "222", OrgID: 10},
 			},
 		}
 		_ = json.NewEncoder(w).Encode(resp)
@@ -292,9 +292,8 @@ func TestListDevicesWithNilOptionalFields(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, devices, 1)
 	assert.Equal(t, "Minimal", devices[0].Name)
-	assert.Nil(t, devices[0].Plan)
-	assert.Nil(t, devices[0].LastConnectionTime)
-	assert.Nil(t, devices[0].RecentSessionInfo)
+	assert.Nil(t, devices[0].Links)
+	assert.Nil(t, devices[0].LastSession)
 }
 
 func TestWithHTTPClient(t *testing.T) {

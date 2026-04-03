@@ -70,7 +70,12 @@ func testDevice() hologram.Device {
 		OrgID: 10,
 		Name:  "Test Device",
 		IMEI:  "123456789012345",
-		State: "LIVE",
+		Links: &hologram.DeviceLinks{
+			Cellular: []hologram.CellularLink{{
+				ID:    100,
+				State: "LIVE",
+			}},
+		},
 	}
 }
 
@@ -188,19 +193,26 @@ func TestBridgeDeviceRemoval(t *testing.T) {
 
 func TestBridgeAttributesJSON(t *testing.T) {
 	mockMQTT := mqtt.NewMockPublisher()
-	connTime := int64(1712000000)
 	device := hologram.Device{
-		ID:                 42,
-		OrgID:              10,
-		Name:               "Test Device",
-		State:              "LIVE",
-		IMEI:               "123456789012345",
-		SIMNumber:          "SIM-001",
-		Carrier:            "T-Mobile",
-		PhoneNumber:        "+15551234567",
-		Plan:               &hologram.Plan{Name: "Pilot 1MB"},
-		LastConnectionTime: &connTime,
-		RecentSessionInfo:  &hologram.SessionInfo{BytesUp: 100, BytesDown: 200},
+		ID:    42,
+		OrgID: 10,
+		Name:  "Test Device",
+		IMEI:  "123456789012345",
+		Links: &hologram.DeviceLinks{
+			Cellular: []hologram.CellularLink{{
+				ID:              100,
+				SIM:             "8946427820610",
+				State:           "LIVE",
+				CarrierID:       "13",
+				MSISDN:          "+15551234567",
+				LastConnectTime: "2026-04-03 11:00:00",
+				Plan:            &hologram.Plan{Name: "Pilot 1MB"},
+			}},
+		},
+		LastSession: &hologram.LastSession{
+			NetworkName: "AT&T",
+			RadioTech:   "LTE",
+		},
 	}
 	mockHolo := &mockHologramClient{devices: []hologram.Device{device}}
 
@@ -215,8 +227,10 @@ func TestBridgeAttributesJSON(t *testing.T) {
 	require.NoError(t, json.Unmarshal(attrs[0].Payload, &a))
 	assert.Equal(t, "LIVE", a["state"])
 	assert.Equal(t, "123456789012345", a["imei"])
-	assert.Equal(t, "T-Mobile", a["carrier"])
+	assert.Equal(t, "13", a["carrier"])
 	assert.Equal(t, "Pilot 1MB", a["plan"])
+	assert.Equal(t, "AT&T", a["network"])
+	assert.Equal(t, "LTE", a["radio_tech"])
 }
 
 // --- Edge case tests ---
@@ -239,15 +253,11 @@ func TestBridgeEmptyDeviceList(t *testing.T) {
 
 func TestBridgeDeviceWithNilFields(t *testing.T) {
 	mockMQTT := mqtt.NewMockPublisher()
-	// Device with all optional pointer fields nil
+	// Device with no cellular link, no last session
 	device := hologram.Device{
-		ID:                 99,
-		OrgID:              10,
-		Name:               "Minimal Device",
-		State:              "PAUSED",
-		Plan:               nil,
-		LastConnectionTime: nil,
-		RecentSessionInfo:  nil,
+		ID:    99,
+		OrgID: 10,
+		Name:  "Minimal Device",
 	}
 	mockHolo := &mockHologramClient{devices: []hologram.Device{device}}
 
@@ -255,19 +265,16 @@ func TestBridgeDeviceWithNilFields(t *testing.T) {
 	err := b.poll(context.Background())
 	require.NoError(t, err)
 
-	// Verify attributes published successfully with zero/empty values
 	attrs := mockMQTT.FindPublished("hologram/device/99/attributes")
 	require.NotEmpty(t, attrs)
 
 	var a map[string]interface{}
 	require.NoError(t, json.Unmarshal(attrs[0].Payload, &a))
-	assert.Equal(t, "PAUSED", a["state"])
+	assert.Equal(t, "", a["state"])
 	assert.Equal(t, "", a["plan"])
-	assert.Equal(t, "", a["last_connection"])
-	assert.Equal(t, float64(0), a["data_up"])
-	assert.Equal(t, float64(0), a["data_down"])
+	assert.Equal(t, "", a["network"])
 
-	// Binary sensor should show OFF for PAUSED
+	// No state means not LIVE, so connectivity OFF
 	conn := mockMQTT.FindPublished("hologram/device/99/connectivity")
 	require.NotEmpty(t, conn)
 	assert.Equal(t, "OFF", string(conn[0].Payload))
@@ -308,7 +315,7 @@ func TestBridgeSetDeviceStateError(t *testing.T) {
 	b.mu.RLock()
 	d := b.knownDevices[42]
 	b.mu.RUnlock()
-	assert.Equal(t, "LIVE", d.State)
+	assert.Equal(t, "LIVE", d.EffectiveState())
 }
 
 func TestBridgePublishErrorDuringPoll(t *testing.T) {
@@ -366,8 +373,8 @@ func TestBridgeConcurrentCommands(t *testing.T) {
 	b := New(testConfig(), mockHolo, mockMQTT, testLogger())
 
 	// Seed two devices
-	b.knownDevices[1] = hologram.Device{ID: 1, OrgID: 10, Name: "D1", State: "LIVE"}
-	b.knownDevices[2] = hologram.Device{ID: 2, OrgID: 10, Name: "D2", State: "LIVE"}
+	b.knownDevices[1] = hologram.Device{ID: 1, OrgID: 10, Name: "D1", Links: &hologram.DeviceLinks{Cellular: []hologram.CellularLink{{State: "LIVE"}}}}
+	b.knownDevices[2] = hologram.Device{ID: 2, OrgID: 10, Name: "D2", Links: &hologram.DeviceLinks{Cellular: []hologram.CellularLink{{State: "LIVE"}}}}
 
 	var wg sync.WaitGroup
 	// Fire many concurrent commands to test mutex safety
@@ -460,7 +467,7 @@ func TestBridgeNewDeviceAppearsOnSecondPoll(t *testing.T) {
 	assert.Len(t, b.knownDevices, 1)
 
 	// Add a second device
-	device2 := hologram.Device{ID: 99, OrgID: 10, Name: "New Device", State: "LIVE"}
+	device2 := hologram.Device{ID: 99, OrgID: 10, Name: "New Device", Links: &hologram.DeviceLinks{Cellular: []hologram.CellularLink{{State: "LIVE"}}}}
 	mockHolo.mu.Lock()
 	mockHolo.devices = []hologram.Device{device1, device2}
 	mockHolo.mu.Unlock()
@@ -485,7 +492,7 @@ func TestBridgeNewDeviceAppearsOnSecondPoll(t *testing.T) {
 func TestBridgeDEADDeviceSwitchState(t *testing.T) {
 	mockMQTT := mqtt.NewMockPublisher()
 	device := testDevice()
-	device.State = "DEAD"
+	device.Links.Cellular[0].State = "DEAD"
 	mockHolo := &mockHologramClient{devices: []hologram.Device{device}}
 
 	b := New(testConfig(), mockHolo, mockMQTT, testLogger())

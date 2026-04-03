@@ -192,18 +192,14 @@ func (b *Bridge) handleCommand(topic string, payload []byte) {
 		return
 	}
 
-	// Update local state and publish immediately
-	if state == "live" {
-		device.State = "LIVE"
-	} else {
-		device.State = "PAUSED"
-	}
-
+	// Build a deep copy with updated state, store it, and publish
 	b.mu.Lock()
-	b.knownDevices[deviceID] = device
+	device = b.knownDevices[deviceID]
+	updated := copyDeviceWithState(device, state)
+	b.knownDevices[deviceID] = updated
 	b.mu.Unlock()
 
-	if err := b.discovery.PublishStates([]hologram.Device{device}); err != nil {
+	if err := b.discovery.PublishStates([]hologram.Device{updated}); err != nil {
 		b.logger.Error("failed to publish updated state", "device_id", deviceID, "error", err)
 	}
 }
@@ -219,4 +215,22 @@ func (b *Bridge) HealthHandler() http.HandlerFunc {
 			_, _ = w.Write([]byte("unhealthy"))
 		}
 	}
+}
+
+// copyDeviceWithState creates a deep copy of a device with the cellular link
+// state updated, so the copy is safe to use outside the mutex.
+func copyDeviceWithState(d hologram.Device, state string) hologram.Device {
+	newState := "PAUSED"
+	if state == "live" {
+		newState = "LIVE"
+	}
+
+	if d.Links != nil && len(d.Links.Cellular) > 0 {
+		newLinks := make([]hologram.CellularLink, len(d.Links.Cellular))
+		copy(newLinks, d.Links.Cellular)
+		newLinks[0].State = newState
+		d.Links = &hologram.DeviceLinks{Cellular: newLinks}
+	}
+
+	return d
 }

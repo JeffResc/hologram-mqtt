@@ -93,6 +93,8 @@ func (c *httpClient) ListDevices(ctx context.Context) ([]Device, error) {
 			return nil, fmt.Errorf("listing devices: %w", err)
 		}
 
+		c.logger.Debug("raw API response", "body", string(resp))
+
 		var listResp DeviceListResponse
 		if err := json.Unmarshal(resp, &listResp); err != nil {
 			return nil, fmt.Errorf("decoding device list: %w", err)
