@@ -1,0 +1,17 @@
+apiVersion: v2
+name: hologram-mqtt
+description: Hologram.io MQTT Bridge for Home Assistant
+type: application
+version: 0.1.0
+appVersion: "0.0.0"
+keywords:
+  - hologram
+  - mqtt
+  - home-assistant
+  - iot
+  - cellular
+home: https://github.com/jeffresc/hologram-mqtt
+sources:
+  - https://github.com/jeffresc/hologram-mqtt
+maintainers:
+  - name: Jeff Rescignano

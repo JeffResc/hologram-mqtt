@@ -1,0 +1,140 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "hologram-mqtt.fullname" . }}
+  labels:
+    {{- include "hologram-mqtt.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      {{- include "hologram-mqtt.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      {{- with .Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        {{- include "hologram-mqtt.labels" . | nindent 8 }}
+        {{- with .Values.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "hologram-mqtt.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+        - name: {{ .Chart.Name }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          env:
+            - name: HOLOGRAM_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "hologram-mqtt.hologramSecretName" . }}
+                  key: api-key
+            - name: MQTT_BROKER
+              value: {{ .Values.mqtt.broker | quote }}
+            {{- if or .Values.mqtt.username .Values.mqtt.existingSecret }}
+            - name: MQTT_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "hologram-mqtt.mqttSecretName" . }}
+                  key: username
+            - name: MQTT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "hologram-mqtt.mqttSecretName" . }}
+                  key: password
+            {{- end }}
+            - name: MQTT_CLIENT_ID
+              value: {{ .Values.mqtt.clientId | quote }}
+            - name: MQTT_TOPIC_PREFIX
+              value: {{ .Values.mqtt.topicPrefix | quote }}
+            {{- if .Values.mqtt.tls.enabled }}
+            - name: MQTT_TLS_ENABLED
+              value: "true"
+            {{- if .Values.mqtt.tls.caSecret }}
+            - name: MQTT_TLS_CA_CERT
+              value: "/tls/ca/{{ .Values.mqtt.tls.caKey }}"
+            {{- end }}
+            {{- if .Values.mqtt.tls.clientCertSecret }}
+            - name: MQTT_TLS_CLIENT_CERT
+              value: "/tls/client/{{ .Values.mqtt.tls.clientCertKey }}"
+            - name: MQTT_TLS_CLIENT_KEY
+              value: "/tls/client/{{ .Values.mqtt.tls.clientKeyKey }}"
+            {{- end }}
+            {{- if .Values.mqtt.tls.skipVerify }}
+            - name: MQTT_TLS_SKIP_VERIFY
+              value: "true"
+            {{- end }}
+            {{- end }}
+            - name: DISCOVERY_PREFIX
+              value: {{ .Values.discovery.prefix | quote }}
+            - name: DISCOVERY_ENABLED
+              value: {{ .Values.discovery.enabled | quote }}
+            - name: POLL_INTERVAL
+              value: {{ .Values.pollInterval | quote }}
+            - name: LOG_LEVEL
+              value: {{ .Values.logLevel | quote }}
+            - name: HEALTH_ENABLED
+              value: {{ .Values.health.enabled | quote }}
+            - name: HEALTH_ADDR
+              value: ":{{ .Values.health.port }}"
+          ports:
+            - name: health
+              containerPort: {{ .Values.health.port }}
+              protocol: TCP
+          {{- with .Values.livenessProbe }}
+          livenessProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.readinessProbe }}
+          readinessProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          volumeMounts:
+            {{- if and .Values.mqtt.tls.enabled .Values.mqtt.tls.caSecret }}
+            - name: tls-ca
+              mountPath: /tls/ca
+              readOnly: true
+            {{- end }}
+            {{- if and .Values.mqtt.tls.enabled .Values.mqtt.tls.clientCertSecret }}
+            - name: tls-client
+              mountPath: /tls/client
+              readOnly: true
+            {{- end }}
+      volumes:
+        {{- if and .Values.mqtt.tls.enabled .Values.mqtt.tls.caSecret }}
+        - name: tls-ca
+          secret:
+            secretName: {{ .Values.mqtt.tls.caSecret }}
+        {{- end }}
+        {{- if and .Values.mqtt.tls.enabled .Values.mqtt.tls.clientCertSecret }}
+        - name: tls-client
+          secret:
+            secretName: {{ .Values.mqtt.tls.clientCertSecret }}
+        {{- end }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
