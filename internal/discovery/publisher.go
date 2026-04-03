@@ -77,8 +77,9 @@ func (p *Publisher) publishDeviceState(d hologram.Device) error {
 	}
 
 	// Publish connectivity binary sensor
+	state := d.EffectiveState()
 	connectivity := "OFF"
-	if d.State == "LIVE" {
+	if state == "LIVE" {
 		connectivity = "ON"
 	}
 	if err := p.mqtt.Publish(prefix+"/connectivity", 1, true, []byte(connectivity)); err != nil {
@@ -87,7 +88,7 @@ func (p *Publisher) publishDeviceState(d hologram.Device) error {
 
 	// Publish switch state (ON = LIVE/active, OFF = PAUSED)
 	switchState := "ON"
-	if d.State == "PAUSED" || d.State == "DEAD" {
+	if state != "LIVE" {
 		switchState = "OFF"
 	}
 	if err := p.mqtt.Publish(prefix+"/switch/state", 1, true, []byte(switchState)); err != nil {
@@ -113,7 +114,7 @@ type deviceAttributes struct {
 
 func buildAttributes(d hologram.Device) deviceAttributes {
 	attrs := deviceAttributes{
-		State:       d.State,
+		State:       d.EffectiveState(),
 		IMEI:        d.IMEI,
 		SIMNumber:   d.SIMNumber,
 		Carrier:     d.Carrier.String(),
@@ -133,6 +134,28 @@ func buildAttributes(d hologram.Device) deviceAttributes {
 	if d.RecentSessionInfo != nil {
 		attrs.DataUp = d.RecentSessionInfo.BytesUp
 		attrs.DataDown = d.RecentSessionInfo.BytesDown
+	}
+
+	// Fill in missing fields from the primary cellular link
+	if link := d.PrimaryCellularLink(); link != nil {
+		if attrs.State == "" {
+			attrs.State = link.State
+		}
+		if attrs.SIMNumber == "" {
+			attrs.SIMNumber = link.SIM
+		}
+		if attrs.Carrier == "" {
+			attrs.Carrier = link.CarrierID.String()
+		}
+		if attrs.PhoneNumber == "" {
+			attrs.PhoneNumber = link.MSISDN
+		}
+		if attrs.LastConnection == "" && link.LastConnectTime != "" {
+			attrs.LastConnection = link.LastConnectTime
+		}
+		if link.Plan != nil && attrs.Plan == "" {
+			attrs.Plan = link.Plan.Name
+		}
 	}
 
 	return attrs

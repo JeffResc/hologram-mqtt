@@ -5,25 +5,45 @@ import "encoding/json"
 
 // Device represents a Hologram device from the API.
 type Device struct {
-	ID                 int              `json:"id"`
-	OrgID              int              `json:"orgid"`
-	Name               string           `json:"name"`
-	IMEI               string           `json:"imei"`
-	IMEISV             string           `json:"imei_sv"`
-	SIMNumber          string           `json:"sim_number"`
-	IMSI               json.Number      `json:"imsi"`
-	MSISDN             string           `json:"msisdn"`
-	State              string           `json:"state"`
-	PhoneNumber        string           `json:"phone_number"`
-	Carrier            json.Number      `json:"carrier"`
-	LastConnectionTime *int64           `json:"last_connection_time"`
-	NetworkUsed        string           `json:"network_used"`
-	DeviceType         string           `json:"device_type"`
-	Manufacturer       string           `json:"manufacturer"`
-	Tags               []string         `json:"tags"`
-	Plan               *Plan            `json:"plan"`
-	RecentSessionInfo  *SessionInfo     `json:"recent_session_info"`
-	Links              *DeviceLinks     `json:"links"`
+	ID                 int          `json:"id"`
+	OrgID              int          `json:"orgid"`
+	Name               string       `json:"name"`
+	IMEI               string       `json:"imei"`
+	IMEISV             string       `json:"imei_sv"`
+	SIMNumber          string       `json:"sim_number"`
+	IMSI               json.Number  `json:"imsi"`
+	MSISDN             string       `json:"msisdn"`
+	State              string       `json:"state"`
+	PhoneNumber        string       `json:"phone_number"`
+	Carrier            json.Number  `json:"carrier"`
+	LastConnectionTime *int64       `json:"last_connection_time"`
+	NetworkUsed        string       `json:"network_used"`
+	DeviceType         string       `json:"device_type"`
+	Manufacturer       string       `json:"manufacturer"`
+	Tags               []string     `json:"tags"`
+	Plan               *Plan        `json:"plan"`
+	RecentSessionInfo  *SessionInfo `json:"recent_session_info"`
+	Links              *DeviceLinks `json:"links"`
+}
+
+// PrimaryCellularLink returns the first cellular link if present.
+func (d *Device) PrimaryCellularLink() *CellularLink {
+	if d.Links != nil && len(d.Links.Cellular) > 0 {
+		return &d.Links.Cellular[0]
+	}
+	return nil
+}
+
+// EffectiveState returns the device state, falling back to the primary
+// cellular link state if the device-level state is empty.
+func (d *Device) EffectiveState() string {
+	if d.State != "" {
+		return d.State
+	}
+	if link := d.PrimaryCellularLink(); link != nil {
+		return link.State
+	}
+	return ""
 }
 
 // Plan represents a Hologram data plan.
@@ -34,10 +54,10 @@ type Plan struct {
 
 // SessionInfo represents recent session data for a device.
 type SessionInfo struct {
-	BytesUp       int64  `json:"bytes_up"`
-	BytesDown     int64  `json:"bytes_down"`
-	RadioTech     string `json:"radio_access_technology"`
-	NetworkName   string `json:"network_name"`
+	BytesUp     int64  `json:"bytes_up"`
+	BytesDown   int64  `json:"bytes_down"`
+	RadioTech   string `json:"radio_access_technology"`
+	NetworkName string `json:"network_name"`
 }
 
 // DeviceLinks holds linked resources from the API response.
@@ -47,13 +67,18 @@ type DeviceLinks struct {
 
 // CellularLink represents a SIM/cellular link associated with a device.
 type CellularLink struct {
-	ID              int    `json:"id"`
-	SIM             string `json:"sim"`
-	IMSI            int64  `json:"imsi"`
-	MSISDN          string `json:"msisdn"`
-	State           string `json:"state"`
-	LastConnectTime string `json:"last_connect_time"`
-	CarrierID       int    `json:"carrierid"`
+	ID              int         `json:"id"`
+	SIM             string      `json:"sim"`
+	IMSI            int64       `json:"imsi"`
+	MSISDN          string      `json:"msisdn"`
+	State           string      `json:"state"`
+	LastConnectTime string      `json:"last_connect_time"`
+	CarrierID       json.Number `json:"carrierid"`
+	Plan            *Plan       `json:"plan"`
+	Apn             string      `json:"apn"`
+	OverageLimit    int64       `json:"overage_limit"`
+	WhenExpires     string      `json:"whenexpires"`
+	WhencreatedStr  string      `json:"whencreated"`
 }
 
 // DeviceListResponse is the paginated response from GET /devices.
