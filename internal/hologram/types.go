@@ -38,9 +38,20 @@ type SessionInfo struct {
 	NetworkName   string `json:"network_name"`
 }
 
-// DeviceLinks holds HATEOAS links from the API response.
+// DeviceLinks holds linked resources from the API response.
 type DeviceLinks struct {
-	Cellular string `json:"cellular"`
+	Cellular []CellularLink `json:"cellular"`
+}
+
+// CellularLink represents a SIM/cellular link associated with a device.
+type CellularLink struct {
+	ID              int    `json:"id"`
+	SIM             string `json:"sim"`
+	IMSI            string `json:"imsi"`
+	MSISDN          string `json:"msisdn"`
+	State           string `json:"state"`
+	LastConnectTime string `json:"last_connect_time"`
+	CarrierID       int    `json:"carrierid"`
 }
 
 // DeviceListResponse is the paginated response from GET /devices.
