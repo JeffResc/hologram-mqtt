@@ -177,7 +177,7 @@ func generateTestCACert(t *testing.T, path string) {
 
 	f, err := os.Create(path)
 	require.NoError(t, err)
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 
 	require.NoError(t, pem.Encode(f, &pem.Block{Type: "CERTIFICATE", Bytes: certDER}))
 }
@@ -200,7 +200,7 @@ func generateTestClientCert(t *testing.T, certPath, keyPath string) {
 
 	certFile, err := os.Create(certPath)
 	require.NoError(t, err)
-	defer certFile.Close()
+	defer func() { _ = certFile.Close() }()
 	require.NoError(t, pem.Encode(certFile, &pem.Block{Type: "CERTIFICATE", Bytes: certDER}))
 
 	keyDER, err := x509.MarshalECPrivateKey(key)
@@ -208,6 +208,6 @@ func generateTestClientCert(t *testing.T, certPath, keyPath string) {
 
 	keyFile, err := os.Create(keyPath)
 	require.NoError(t, err)
-	defer keyFile.Close()
+	defer func() { _ = keyFile.Close() }()
 	require.NoError(t, pem.Encode(keyFile, &pem.Block{Type: "EC PRIVATE KEY", Bytes: keyDER}))
 }

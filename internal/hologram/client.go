@@ -171,7 +171,7 @@ func (c *httpClient) doWithRetry(ctx context.Context, method, url, body string) 
 		}
 
 		respBody, err := io.ReadAll(resp.Body)
-		resp.Body.Close()
+		_ = resp.Body.Close()
 		if err != nil {
 			return nil, fmt.Errorf("reading response body: %w", err)
 		}
