@@ -1,0 +1,35 @@
+# Changelog
+
+## 1.0.0 (2026-04-03)
+
+
+### Features
+
+* add concurrency safety, health check, TLS support, and edge case tests ([1f253f0](https://github.com/JeffResc/hologram-mqtt/commit/1f253f05a60110b12d27fdb9aa0210d480a0e3cb))
+* add Docker Compose template and Helm chart ([3ba330a](https://github.com/JeffResc/hologram-mqtt/commit/3ba330ace97c73459c01bdd1d7e6e931fc4d9c0c))
+* add HOLOGRAM_ORG_ID config for multi-org API keys ([65aae19](https://github.com/JeffResc/hologram-mqtt/commit/65aae195b458b2abee48979b772f3e74c6c6528a))
+* add multi-arch binary and Docker image builds ([ca1373c](https://github.com/JeffResc/hologram-mqtt/commit/ca1373c9ed75a91af329a80ae4fdc3b101e23e3b))
+* align types with real Hologram API response, add metadata ([ee8ebbe](https://github.com/JeffResc/hologram-mqtt/commit/ee8ebbe465764d15052a2e28413867cd5d48d400))
+* implement Hologram.io MQTT bridge for Home Assistant ([cbb1ce6](https://github.com/JeffResc/hologram-mqtt/commit/cbb1ce65b8fd9042bfaafa04bd55d95e75d17cf6))
+* implement Hologram.io MQTT bridge for Home Assistant ([4d662c4](https://github.com/JeffResc/hologram-mqtt/commit/4d662c4f7f2d62c314136c4bbd61e63a32ed42c7))
+
+
+### Bug Fixes
+
+* change default MQTT topic prefix from hologram-mqtt to hologram ([4fb871d](https://github.com/JeffResc/hologram-mqtt/commit/4fb871d27989a602e094e2adc17f2cdfab695921))
+* check error returns from w.Write in health handler ([b17d1fc](https://github.com/JeffResc/hologram-mqtt/commit/b17d1fc78cf0b4be20801ccb65f83dbde16f1396))
+* handle errcheck lint errors for Close() calls ([47bb491](https://github.com/JeffResc/hologram-mqtt/commit/47bb491b45732f12f7a7fd6669fec81840957f5f))
+* populate attributes from cellular link when device fields are empty ([9f92f36](https://github.com/JeffResc/hologram-mqtt/commit/9f92f36f6118a3a8c792590afd45d61286641a7a))
+* resolve golangci-lint errors ([42b3528](https://github.com/JeffResc/hologram-mqtt/commit/42b3528b86e0e75acfec9a84f4fc7c578379f3ed))
+* unmarshal links.cellular as array of objects ([a31bd17](https://github.com/JeffResc/hologram-mqtt/commit/a31bd17a9c65994db938866f5804845e5216c944))
+* use correct types for IMSI and carrier fields ([7654eca](https://github.com/JeffResc/hologram-mqtt/commit/7654eca8d2d6a09ae2681d447f70913384ba1e18))
+* use minor version bumps for pre-1.0.0 releases ([0df48e9](https://github.com/JeffResc/hologram-mqtt/commit/0df48e91776156002005a61ed4122a96173726f8))
+* use pinned distroless static image digest ([be58e9d](https://github.com/JeffResc/hologram-mqtt/commit/be58e9d680200d608344001c01952bdfb7320e06))
+
+
+### Miscellaneous
+
+* **deps:** update dependency go to 1.26 ([62dd92b](https://github.com/JeffResc/hologram-mqtt/commit/62dd92be97a01a9af2685b87a02209e3bf8b82c5))
+* **deps:** update go.mod to go 1.26 and combine renovate branches ([b43456e](https://github.com/JeffResc/hologram-mqtt/commit/b43456e5bae4a0f0aaae48c3c91b4298bc5cbfa5))
+* **deps:** update golang docker tag to v1.26 ([b88834a](https://github.com/JeffResc/hologram-mqtt/commit/b88834a9178d3d4ea617afb96f26ac7a2336b1b7))
+* **deps:** upgrade golangci-lint to v2 for Go 1.26 support ([47c3cf6](https://github.com/JeffResc/hologram-mqtt/commit/47c3cf6aca27c5ef85c69178e4242a539fe20c67))
