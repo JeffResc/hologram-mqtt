@@ -107,3 +107,31 @@ jobs:
             VERSION=${{ needs.release-please.outputs.version }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+  helm:
+    name: Push Helm Chart (OCI)
+    runs-on: ubuntu-latest
+    needs: release-please
+    if: ${{ needs.release-please.outputs.release_created }}
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Install Helm
+        uses: azure/setup-helm@v4
+
+      - name: Log in to GitHub Container Registry
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | helm registry login ghcr.io -u ${{ github.actor }} --password-stdin
+
+      - name: Set chart version
+        run: |
+          VERSION="${{ needs.release-please.outputs.version }}"
+          sed -i "s/^version:.*/version: ${VERSION}/" chart/Chart.yaml
+          sed -i "s/^appVersion:.*/appVersion: \"${VERSION}\"/" chart/Chart.yaml
+
+      - name: Package chart
+        run: helm package chart/
+
+      - name: Push chart to GHCR
+        run: |
+          VERSION="${{ needs.release-please.outputs.version }}"
+          helm push hologram-mqtt-${VERSION}.tgz oci://ghcr.io/${{ github.repository_owner }}/charts
