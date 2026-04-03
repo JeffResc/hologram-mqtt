@@ -1,5 +1,31 @@
 # Changelog
 
+## [1.1.0](https://github.com/JeffResc/hologram-mqtt/compare/hologram-mqtt-v1.0.0...hologram-mqtt-v1.1.0) (2026-04-03)
+
+
+### Features
+
+* add Helm chart OCI release to GitHub Actions and Kubernetes docs ([1df7e63](https://github.com/JeffResc/hologram-mqtt/commit/1df7e63c8138ecc71f3efd344bdce9820d4b50ac))
+
+
+### Bug Fixes
+
+* lowercase repository owner in Helm OCI push ([d053b67](https://github.com/JeffResc/hologram-mqtt/commit/d053b67c21ea890ca9d4fb3b3a76b4b71607d01e))
+* use raw version tags for Docker image to ensure proper OCI tagging ([9d05678](https://github.com/JeffResc/hologram-mqtt/commit/9d05678b144dc0910fd858f7334c34aff1648232))
+
+
+### Miscellaneous
+
+* **deps:** update actions/upload-artifact action to v7 ([d96820b](https://github.com/JeffResc/hologram-mqtt/commit/d96820b5ddf3edb1f83d743b208be5ed90e09368))
+* **deps:** update azure/setup-helm action to v5 ([982c4b6](https://github.com/JeffResc/hologram-mqtt/commit/982c4b6a2078f1d50d7c9cbabdaa2a18e702b220))
+* **deps:** update docker/build-push-action action to v7 ([e53c953](https://github.com/JeffResc/hologram-mqtt/commit/e53c9539e8b7f5da47bfef6e67a29289c855360e))
+* **deps:** update docker/login-action action to v4 ([60f2a11](https://github.com/JeffResc/hologram-mqtt/commit/60f2a11511d012bc803481ef38651993168a2a97))
+* **deps:** update docker/metadata-action action to v6 ([5a13a0a](https://github.com/JeffResc/hologram-mqtt/commit/5a13a0ae6ef8dcc4e8234dc578b72afc6c07227d))
+* **deps:** update docker/setup-buildx-action action to v4 ([90d4ef6](https://github.com/JeffResc/hologram-mqtt/commit/90d4ef659a3379615be01c10b6cb999d8dcc32b8))
+* **deps:** update docker/setup-qemu-action action to v4 ([562dadd](https://github.com/JeffResc/hologram-mqtt/commit/562dadd1f9c45c0c344ea39dfa9cde62322d97cb))
+* **deps:** update golangci/golangci-lint-action action to v9 ([72b89fe](https://github.com/JeffResc/hologram-mqtt/commit/72b89fe403479c8e6d2b7e445f5eb462c252a6a7))
+* **main:** release hologram-mqtt 1.1.0 ([6cfa966](https://github.com/JeffResc/hologram-mqtt/commit/6cfa9666651b3e408aca8d135565c59835e27e68))
+
 ## 1.0.0 (2026-04-03)
 
 
