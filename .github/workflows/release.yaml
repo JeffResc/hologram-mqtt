@@ -88,11 +88,12 @@ jobs:
       - name: Extract metadata
         id: meta
         uses: docker/metadata-action@v6
+        env:
+          DOCKER_METADATA_ANNOTATIONS_LEVELS: manifest,index
         with:
           images: ghcr.io/${{ github.repository }}
           tags: |
-            type=semver,pattern={{version}},value=${{ needs.release-please.outputs.tag_name }}
-            type=semver,pattern={{major}}.{{minor}},value=${{ needs.release-please.outputs.tag_name }}
+            type=raw,value=${{ needs.release-please.outputs.version }}
             type=raw,value=latest
 
       - name: Build and push
@@ -134,4 +135,5 @@ jobs:
       - name: Push chart to GHCR
         run: |
           VERSION="${{ needs.release-please.outputs.version }}"
-          helm push hologram-mqtt-${VERSION}.tgz oci://ghcr.io/${{ github.repository_owner }}/charts
+          OWNER="$(echo '${{ github.repository_owner }}' | tr '[:upper:]' '[:lower:]')"
+          helm push hologram-mqtt-${VERSION}.tgz oci://ghcr.io/${OWNER}/charts
