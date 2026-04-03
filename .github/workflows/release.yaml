@@ -134,4 +134,5 @@ jobs:
       - name: Push chart to GHCR
         run: |
           VERSION="${{ needs.release-please.outputs.version }}"
-          helm push hologram-mqtt-${VERSION}.tgz oci://ghcr.io/${{ github.repository_owner }}/charts
+          OWNER="$(echo '${{ github.repository_owner }}' | tr '[:upper:]' '[:lower:]')"
+          helm push hologram-mqtt-${VERSION}.tgz oci://ghcr.io/${OWNER}/charts
