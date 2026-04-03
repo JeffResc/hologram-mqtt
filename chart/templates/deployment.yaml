@@ -42,6 +42,10 @@ spec:
                 secretKeyRef:
                   name: {{ include "hologram-mqtt.hologramSecretName" . }}
                   key: api-key
+            {{- if gt (int .Values.hologram.orgId) 0 }}
+            - name: HOLOGRAM_ORG_ID
+              value: {{ .Values.hologram.orgId | quote }}
+            {{- end }}
             - name: MQTT_BROKER
               value: {{ .Values.mqtt.broker | quote }}
             {{- if or .Values.mqtt.username .Values.mqtt.existingSecret }}
