@@ -116,7 +116,7 @@ func buildAttributes(d hologram.Device) deviceAttributes {
 		State:       d.State,
 		IMEI:        d.IMEI,
 		SIMNumber:   d.SIMNumber,
-		Carrier:     d.Carrier,
+		Carrier:     d.Carrier.String(),
 		PhoneNumber: d.PhoneNumber,
 		Network:     d.NetworkUsed,
 	}

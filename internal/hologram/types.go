@@ -1,6 +1,8 @@
 // Package hologram provides a client for the Hologram.io REST API.
 package hologram
 
+import "encoding/json"
+
 // Device represents a Hologram device from the API.
 type Device struct {
 	ID                 int              `json:"id"`
@@ -9,11 +11,11 @@ type Device struct {
 	IMEI               string           `json:"imei"`
 	IMEISV             string           `json:"imei_sv"`
 	SIMNumber          string           `json:"sim_number"`
-	IMSI               string           `json:"imsi"`
+	IMSI               json.Number      `json:"imsi"`
 	MSISDN             string           `json:"msisdn"`
 	State              string           `json:"state"`
 	PhoneNumber        string           `json:"phone_number"`
-	Carrier            string           `json:"carrier"`
+	Carrier            json.Number      `json:"carrier"`
 	LastConnectionTime *int64           `json:"last_connection_time"`
 	NetworkUsed        string           `json:"network_used"`
 	DeviceType         string           `json:"device_type"`
@@ -47,7 +49,7 @@ type DeviceLinks struct {
 type CellularLink struct {
 	ID              int    `json:"id"`
 	SIM             string `json:"sim"`
-	IMSI            string `json:"imsi"`
+	IMSI            int64  `json:"imsi"`
 	MSISDN          string `json:"msisdn"`
 	State           string `json:"state"`
 	LastConnectTime string `json:"last_connect_time"`
