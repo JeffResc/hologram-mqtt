@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.2](https://github.com/JeffResc/hologram-mqtt/compare/hologram-mqtt-v1.1.1...hologram-mqtt-v1.1.2) (2026-04-10)
+
+
+### Miscellaneous
+
+* **deps:** update dependency go to v1.26.2 ([44a6cf9](https://github.com/JeffResc/hologram-mqtt/commit/44a6cf9e5c18ef9caa873e3b402cdd8654729ebe))
+
 ## [1.1.1](https://github.com/JeffResc/hologram-mqtt/compare/hologram-mqtt-v1.1.0...hologram-mqtt-v1.1.1) (2026-04-03)
 
 
