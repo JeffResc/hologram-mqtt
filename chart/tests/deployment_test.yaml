@@ -1,0 +1,181 @@
+suite: deployment tests
+templates:
+  - templates/deployment.yaml
+release:
+  name: test-release
+  namespace: test-ns
+tests:
+  - it: should be a Deployment
+    asserts:
+      - isKind:
+          of: Deployment
+
+  - it: should use Recreate strategy
+    asserts:
+      - equal:
+          path: spec.strategy.type
+          value: Recreate
+
+  - it: should set replicas from values
+    set:
+      replicaCount: 2
+    asserts:
+      - equal:
+          path: spec.replicas
+          value: 2
+
+  - it: should use default image tag from appVersion
+    asserts:
+      - matchRegex:
+          path: spec.template.spec.containers[0].image
+          pattern: "ghcr.io/jeffresc/hologram-mqtt:.+"
+
+  - it: should allow image tag override
+    set:
+      image.tag: "1.2.3"
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].image
+          value: "ghcr.io/jeffresc/hologram-mqtt:1.2.3"
+
+  - it: should set MQTT_BROKER env var
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: MQTT_BROKER
+            value: "tcp://mqtt:1883"
+
+  - it: should set HOLOGRAM_ORG_ID when orgId > 0
+    set:
+      hologram.orgId: 42
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: HOLOGRAM_ORG_ID
+            value: "42"
+
+  - it: should not set HOLOGRAM_ORG_ID when orgId is 0
+    asserts:
+      - notContains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: HOLOGRAM_ORG_ID
+            value: "0"
+
+  - it: should reference hologram secret for API key
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: HOLOGRAM_API_KEY
+            valueFrom:
+              secretKeyRef:
+                name: test-release-hologram-mqtt-hologram
+                key: api-key
+
+  - it: should use existingSecret for hologram API key
+    set:
+      hologram.existingSecret: my-secret
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: HOLOGRAM_API_KEY
+            valueFrom:
+              secretKeyRef:
+                name: my-secret
+                key: api-key
+
+  - it: should not include MQTT credentials when not set
+    asserts:
+      - notContains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: MQTT_USERNAME
+          any: true
+
+  - it: should include MQTT credentials when username is set
+    set:
+      mqtt.username: testuser
+      mqtt.password: testpass
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: MQTT_USERNAME
+            valueFrom:
+              secretKeyRef:
+                name: test-release-hologram-mqtt-mqtt
+                key: username
+
+  - it: should mount TLS volumes when TLS is enabled
+    set:
+      mqtt.tls.enabled: true
+      mqtt.tls.caSecret: my-ca
+      mqtt.tls.clientCertSecret: my-cert
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].volumeMounts
+          content:
+            name: tls-ca
+            mountPath: /tls/ca
+            readOnly: true
+      - contains:
+          path: spec.template.spec.containers[0].volumeMounts
+          content:
+            name: tls-client
+            mountPath: /tls/client
+            readOnly: true
+      - contains:
+          path: spec.template.spec.volumes
+          content:
+            name: tls-ca
+            secret:
+              secretName: my-ca
+
+  - it: should not mount TLS volumes when TLS is disabled
+    asserts:
+      - isEmpty:
+          path: spec.template.spec.containers[0].volumeMounts
+
+  - it: should set pod security context
+    asserts:
+      - equal:
+          path: spec.template.spec.securityContext.runAsNonRoot
+          value: true
+      - equal:
+          path: spec.template.spec.securityContext.runAsUser
+          value: 65534
+
+  - it: should set container security context
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].securityContext.allowPrivilegeEscalation
+          value: false
+      - equal:
+          path: spec.template.spec.containers[0].securityContext.readOnlyRootFilesystem
+          value: true
+
+  - it: should set custom pod annotations
+    set:
+      podAnnotations:
+        test-annotation: "test-value"
+    asserts:
+      - equal:
+          path: spec.template.metadata.annotations.test-annotation
+          value: "test-value"
+
+  - it: should set health port and probes
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].ports
+          content:
+            name: health
+            containerPort: 8080
+            protocol: TCP
+      - isNotNull:
+          path: spec.template.spec.containers[0].livenessProbe
+      - isNotNull:
+          path: spec.template.spec.containers[0].readinessProbe
