@@ -10,6 +10,7 @@ Hologram.io MQTT Bridge for Home Assistant — exposes your Hologram cellular Io
 - **Configurable polling** — Device info refreshed on a configurable interval (default: 5 minutes)
 - **TLS support** — Optional TLS with custom CA, client certificates, and skip-verify for MQTT connections
 - **Health check** — Built-in `/healthz` HTTP endpoint for container orchestrators
+- **Prometheus metrics** — Built-in `/metrics` endpoint for observability
 - **Lightweight** — Runs as a single Go binary in a distroless Docker container
 
 ## Entities Per Device
@@ -174,11 +175,24 @@ hologram/device/<id>/switch/state            → ON/OFF (active/paused)
 hologram/device/<id>/switch/set              → Command topic (ON/OFF)
 ```
 
+## Metrics
+
+Prometheus metrics are exposed at `/metrics` on the health HTTP server (same port as `/healthz`, default `:8080`).
+
+| Metric | Type | Description |
+|---|---|---|
+| `hologram_mqtt_polls_total` | Counter | Total poll cycles (`status=success\|error`) |
+| `hologram_mqtt_poll_duration_seconds` | Histogram | Duration of each poll cycle |
+| `hologram_mqtt_devices_total` | Gauge | Number of known devices after last poll |
+| `hologram_mqtt_commands_total` | Counter | MQTT commands received (`action=live\|pause`) |
+
+To scrape metrics in Kubernetes, create a `ServiceMonitor` or `PodMonitor` CR targeting this service, or add `prometheus.io/*` pod annotations via `podAnnotations` in the Helm values.
+
 ## Development
 
 ### Prerequisites
 
-- Go 1.24+
+- Go 1.26+
 
 ### Build
 
@@ -200,4 +214,4 @@ golangci-lint run
 
 ## License
 
-[MIT](LICENSE)
+[Apache 2.0](LICENSE)
