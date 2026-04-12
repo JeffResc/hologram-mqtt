@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 
@@ -79,8 +80,10 @@ func main() {
 		}()
 
 		defer func() {
-			if err := healthServer.Close(); err != nil {
-				logger.Error("failed to close health server", "error", err)
+			shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+			defer cancel()
+			if err := healthServer.Shutdown(shutdownCtx); err != nil {
+				logger.Error("failed to shut down health server", "error", err)
 			}
 		}()
 	}
