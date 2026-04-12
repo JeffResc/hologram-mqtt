@@ -10,6 +10,22 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// clearEnvVars unsets all config-related env vars to prevent test interference.
+func clearEnvVars(t *testing.T) {
+	t.Helper()
+	for _, key := range []string{
+		"CONFIG_FILE", "HOLOGRAM_API_KEY", "HOLOGRAM_ORG_ID",
+		"MQTT_BROKER", "MQTT_USERNAME", "MQTT_PASSWORD", "MQTT_CLIENT_ID", "MQTT_TOPIC_PREFIX",
+		"MQTT_TLS_ENABLED", "MQTT_TLS_CA_CERT", "MQTT_TLS_CLIENT_CERT", "MQTT_TLS_CLIENT_KEY", "MQTT_TLS_SKIP_VERIFY",
+		"DISCOVERY_PREFIX", "DISCOVERY_ENABLED",
+		"HEALTH_ENABLED", "HEALTH_ADDR",
+		"POLL_INTERVAL", "LOG_LEVEL",
+	} {
+		t.Setenv(key, "")
+		os.Unsetenv(key)
+	}
+}
+
 func TestDefaults(t *testing.T) {
 	cfg := defaults()
 	assert.Equal(t, "hologram-mqtt", cfg.MQTT.ClientID)
@@ -24,6 +40,8 @@ func TestDefaults(t *testing.T) {
 }
 
 func TestLoadFromFile(t *testing.T) {
+	clearEnvVars(t)
+
 	dir := t.TempDir()
 	cfgPath := filepath.Join(dir, "config.yaml")
 	content := `
@@ -36,10 +54,7 @@ mqtt:
 poll_interval: 2m
 `
 	require.NoError(t, os.WriteFile(cfgPath, []byte(content), 0o644))
-	t.Setenv("CONFIG_FILE", cfgPath)
-	// Clear env vars that would override
-	t.Setenv("HOLOGRAM_API_KEY", "")
-	t.Setenv("MQTT_BROKER", "")
+	os.Setenv("CONFIG_FILE", cfgPath)
 
 	cfg, err := Load()
 	require.NoError(t, err)
@@ -51,6 +66,8 @@ poll_interval: 2m
 }
 
 func TestEnvOverridesFile(t *testing.T) {
+	clearEnvVars(t)
+
 	dir := t.TempDir()
 	cfgPath := filepath.Join(dir, "config.yaml")
 	content := `
@@ -60,9 +77,9 @@ mqtt:
   broker: "tcp://file:1883"
 `
 	require.NoError(t, os.WriteFile(cfgPath, []byte(content), 0o644))
-	t.Setenv("CONFIG_FILE", cfgPath)
-	t.Setenv("HOLOGRAM_API_KEY", "env-key")
-	t.Setenv("MQTT_BROKER", "tcp://env:1883")
+	os.Setenv("CONFIG_FILE", cfgPath)
+	os.Setenv("HOLOGRAM_API_KEY", "env-key")
+	os.Setenv("MQTT_BROKER", "tcp://env:1883")
 
 	cfg, err := Load()
 	require.NoError(t, err)
@@ -71,9 +88,9 @@ mqtt:
 }
 
 func TestValidationRequiresAPIKey(t *testing.T) {
-	t.Setenv("CONFIG_FILE", "/nonexistent/path")
-	t.Setenv("HOLOGRAM_API_KEY", "")
-	t.Setenv("MQTT_BROKER", "tcp://localhost:1883")
+	clearEnvVars(t)
+	os.Setenv("CONFIG_FILE", "/nonexistent/path")
+	os.Setenv("MQTT_BROKER", "tcp://localhost:1883")
 
 	_, err := Load()
 	require.Error(t, err)
@@ -81,9 +98,9 @@ func TestValidationRequiresAPIKey(t *testing.T) {
 }
 
 func TestValidationRequiresBroker(t *testing.T) {
-	t.Setenv("CONFIG_FILE", "/nonexistent/path")
-	t.Setenv("HOLOGRAM_API_KEY", "test-key")
-	t.Setenv("MQTT_BROKER", "")
+	clearEnvVars(t)
+	os.Setenv("CONFIG_FILE", "/nonexistent/path")
+	os.Setenv("HOLOGRAM_API_KEY", "test-key")
 
 	_, err := Load()
 	require.Error(t, err)
@@ -91,10 +108,11 @@ func TestValidationRequiresBroker(t *testing.T) {
 }
 
 func TestPollIntervalMinimum(t *testing.T) {
-	t.Setenv("CONFIG_FILE", "/nonexistent/path")
-	t.Setenv("HOLOGRAM_API_KEY", "test-key")
-	t.Setenv("MQTT_BROKER", "tcp://localhost:1883")
-	t.Setenv("POLL_INTERVAL", "1s")
+	clearEnvVars(t)
+	os.Setenv("CONFIG_FILE", "/nonexistent/path")
+	os.Setenv("HOLOGRAM_API_KEY", "test-key")
+	os.Setenv("MQTT_BROKER", "tcp://localhost:1883")
+	os.Setenv("POLL_INTERVAL", "1s")
 
 	_, err := Load()
 	require.Error(t, err)
@@ -102,10 +120,11 @@ func TestPollIntervalMinimum(t *testing.T) {
 }
 
 func TestPollIntervalAsSeconds(t *testing.T) {
-	t.Setenv("CONFIG_FILE", "/nonexistent/path")
-	t.Setenv("HOLOGRAM_API_KEY", "test-key")
-	t.Setenv("MQTT_BROKER", "tcp://localhost:1883")
-	t.Setenv("POLL_INTERVAL", "60")
+	clearEnvVars(t)
+	os.Setenv("CONFIG_FILE", "/nonexistent/path")
+	os.Setenv("HOLOGRAM_API_KEY", "test-key")
+	os.Setenv("MQTT_BROKER", "tcp://localhost:1883")
+	os.Setenv("POLL_INTERVAL", "60")
 
 	cfg, err := Load()
 	require.NoError(t, err)
@@ -113,14 +132,15 @@ func TestPollIntervalAsSeconds(t *testing.T) {
 }
 
 func TestTLSEnvVars(t *testing.T) {
-	t.Setenv("CONFIG_FILE", "/nonexistent/path")
-	t.Setenv("HOLOGRAM_API_KEY", "test-key")
-	t.Setenv("MQTT_BROKER", "ssl://mqtt:8883")
-	t.Setenv("MQTT_TLS_ENABLED", "true")
-	t.Setenv("MQTT_TLS_CA_CERT", "/certs/ca.pem")
-	t.Setenv("MQTT_TLS_CLIENT_CERT", "/certs/client.pem")
-	t.Setenv("MQTT_TLS_CLIENT_KEY", "/certs/client-key.pem")
-	t.Setenv("MQTT_TLS_SKIP_VERIFY", "false")
+	clearEnvVars(t)
+	os.Setenv("CONFIG_FILE", "/nonexistent/path")
+	os.Setenv("HOLOGRAM_API_KEY", "test-key")
+	os.Setenv("MQTT_BROKER", "ssl://mqtt:8883")
+	os.Setenv("MQTT_TLS_ENABLED", "true")
+	os.Setenv("MQTT_TLS_CA_CERT", "/certs/ca.pem")
+	os.Setenv("MQTT_TLS_CLIENT_CERT", "/certs/client.pem")
+	os.Setenv("MQTT_TLS_CLIENT_KEY", "/certs/client-key.pem")
+	os.Setenv("MQTT_TLS_SKIP_VERIFY", "false")
 
 	cfg, err := Load()
 	require.NoError(t, err)
@@ -132,11 +152,12 @@ func TestTLSEnvVars(t *testing.T) {
 }
 
 func TestTLSSkipVerifyTrue(t *testing.T) {
-	t.Setenv("CONFIG_FILE", "/nonexistent/path")
-	t.Setenv("HOLOGRAM_API_KEY", "test-key")
-	t.Setenv("MQTT_BROKER", "ssl://mqtt:8883")
-	t.Setenv("MQTT_TLS_ENABLED", "1")
-	t.Setenv("MQTT_TLS_SKIP_VERIFY", "1")
+	clearEnvVars(t)
+	os.Setenv("CONFIG_FILE", "/nonexistent/path")
+	os.Setenv("HOLOGRAM_API_KEY", "test-key")
+	os.Setenv("MQTT_BROKER", "ssl://mqtt:8883")
+	os.Setenv("MQTT_TLS_ENABLED", "true")
+	os.Setenv("MQTT_TLS_SKIP_VERIFY", "true")
 
 	cfg, err := Load()
 	require.NoError(t, err)
@@ -145,12 +166,12 @@ func TestTLSSkipVerifyTrue(t *testing.T) {
 }
 
 func TestTLSValidationClientCertWithoutKey(t *testing.T) {
-	t.Setenv("CONFIG_FILE", "/nonexistent/path")
-	t.Setenv("HOLOGRAM_API_KEY", "test-key")
-	t.Setenv("MQTT_BROKER", "ssl://mqtt:8883")
-	t.Setenv("MQTT_TLS_ENABLED", "true")
-	t.Setenv("MQTT_TLS_CLIENT_CERT", "/certs/client.pem")
-	t.Setenv("MQTT_TLS_CLIENT_KEY", "")
+	clearEnvVars(t)
+	os.Setenv("CONFIG_FILE", "/nonexistent/path")
+	os.Setenv("HOLOGRAM_API_KEY", "test-key")
+	os.Setenv("MQTT_BROKER", "ssl://mqtt:8883")
+	os.Setenv("MQTT_TLS_ENABLED", "true")
+	os.Setenv("MQTT_TLS_CLIENT_CERT", "/certs/client.pem")
 
 	_, err := Load()
 	require.Error(t, err)
@@ -158,12 +179,12 @@ func TestTLSValidationClientCertWithoutKey(t *testing.T) {
 }
 
 func TestTLSValidationClientKeyWithoutCert(t *testing.T) {
-	t.Setenv("CONFIG_FILE", "/nonexistent/path")
-	t.Setenv("HOLOGRAM_API_KEY", "test-key")
-	t.Setenv("MQTT_BROKER", "ssl://mqtt:8883")
-	t.Setenv("MQTT_TLS_ENABLED", "true")
-	t.Setenv("MQTT_TLS_CLIENT_CERT", "")
-	t.Setenv("MQTT_TLS_CLIENT_KEY", "/certs/client-key.pem")
+	clearEnvVars(t)
+	os.Setenv("CONFIG_FILE", "/nonexistent/path")
+	os.Setenv("HOLOGRAM_API_KEY", "test-key")
+	os.Setenv("MQTT_BROKER", "ssl://mqtt:8883")
+	os.Setenv("MQTT_TLS_ENABLED", "true")
+	os.Setenv("MQTT_TLS_CLIENT_KEY", "/certs/client-key.pem")
 
 	_, err := Load()
 	require.Error(t, err)
@@ -171,6 +192,8 @@ func TestTLSValidationClientKeyWithoutCert(t *testing.T) {
 }
 
 func TestTLSFromYAML(t *testing.T) {
+	clearEnvVars(t)
+
 	dir := t.TempDir()
 	cfgPath := filepath.Join(dir, "config.yaml")
 	content := `
@@ -184,12 +207,7 @@ mqtt:
     skip_verify: true
 `
 	require.NoError(t, os.WriteFile(cfgPath, []byte(content), 0o644))
-	t.Setenv("CONFIG_FILE", cfgPath)
-	t.Setenv("HOLOGRAM_API_KEY", "")
-	t.Setenv("MQTT_BROKER", "")
-	t.Setenv("MQTT_TLS_ENABLED", "")
-	t.Setenv("MQTT_TLS_CA_CERT", "")
-	t.Setenv("MQTT_TLS_SKIP_VERIFY", "")
+	os.Setenv("CONFIG_FILE", cfgPath)
 
 	cfg, err := Load()
 	require.NoError(t, err)
@@ -199,11 +217,12 @@ mqtt:
 }
 
 func TestHealthEnvVars(t *testing.T) {
-	t.Setenv("CONFIG_FILE", "/nonexistent/path")
-	t.Setenv("HOLOGRAM_API_KEY", "test-key")
-	t.Setenv("MQTT_BROKER", "tcp://localhost:1883")
-	t.Setenv("HEALTH_ENABLED", "false")
-	t.Setenv("HEALTH_ADDR", ":9090")
+	clearEnvVars(t)
+	os.Setenv("CONFIG_FILE", "/nonexistent/path")
+	os.Setenv("HOLOGRAM_API_KEY", "test-key")
+	os.Setenv("MQTT_BROKER", "tcp://localhost:1883")
+	os.Setenv("HEALTH_ENABLED", "false")
+	os.Setenv("HEALTH_ADDR", ":9090")
 
 	cfg, err := Load()
 	require.NoError(t, err)
