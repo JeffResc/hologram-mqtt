@@ -100,14 +100,7 @@ func main() {
 
 func setupLogger(level string) *slog.Logger {
 	var logLevel slog.Level
-	switch level {
-	case "debug":
-		logLevel = slog.LevelDebug
-	case "warn":
-		logLevel = slog.LevelWarn
-	case "error":
-		logLevel = slog.LevelError
-	default:
+	if err := logLevel.UnmarshalText([]byte(level)); err != nil {
 		logLevel = slog.LevelInfo
 	}
 
