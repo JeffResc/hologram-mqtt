@@ -93,7 +93,9 @@ func Load() (*Config, error) {
 		return nil, fmt.Errorf("reading config file: %w", err)
 	}
 
-	applyEnv(&cfg)
+	if err := applyEnv(&cfg); err != nil {
+		return nil, err
+	}
 
 	if err := validate(&cfg); err != nil {
 		return nil, err
@@ -110,14 +112,16 @@ func loadFile(path string, cfg *Config) error {
 	return yaml.Unmarshal(data, cfg)
 }
 
-func applyEnv(cfg *Config) {
+func applyEnv(cfg *Config) error {
 	if v := os.Getenv("HOLOGRAM_API_KEY"); v != "" {
 		cfg.Hologram.APIKey = v
 	}
 	if v := os.Getenv("HOLOGRAM_ORG_ID"); v != "" {
-		if id, err := strconv.Atoi(v); err == nil {
-			cfg.Hologram.OrgID = id
+		id, err := strconv.Atoi(v)
+		if err != nil {
+			return fmt.Errorf("invalid HOLOGRAM_ORG_ID %q: %w", v, err)
 		}
+		cfg.Hologram.OrgID = id
 	}
 	if v := os.Getenv("MQTT_BROKER"); v != "" {
 		cfg.MQTT.Broker = v
@@ -171,6 +175,7 @@ func applyEnv(cfg *Config) {
 	if v := os.Getenv("LOG_LEVEL"); v != "" {
 		cfg.LogLevel = v
 	}
+	return nil
 }
 
 func validate(cfg *Config) error {
