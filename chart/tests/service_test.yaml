@@ -1,0 +1,34 @@
+suite: service tests
+templates:
+  - templates/service.yaml
+release:
+  name: test-release
+  namespace: test-ns
+tests:
+  - it: should be a Service
+    asserts:
+      - isKind:
+          of: Service
+
+  - it: should use ClusterIP type by default
+    asserts:
+      - equal:
+          path: spec.type
+          value: ClusterIP
+
+  - it: should target the health port
+    asserts:
+      - contains:
+          path: spec.ports
+          content:
+            port: 8080
+            targetPort: health
+            protocol: TCP
+            name: health
+
+  - it: should have correct selector labels
+    asserts:
+      - isNotNull:
+          path: spec.selector["app.kubernetes.io/name"]
+      - isNotNull:
+          path: spec.selector["app.kubernetes.io/instance"]
