@@ -10,6 +10,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/hashicorp/go-retryablehttp"
 )
 
 const (
@@ -23,11 +25,6 @@ type Client interface {
 	SetDeviceState(ctx context.Context, orgID, deviceID int, state string) error
 }
 
-// HTTPDoer abstracts an HTTP client for testability.
-type HTTPDoer interface {
-	Do(req *http.Request) (*http.Response, error)
-}
-
 // Option configures the hologram client.
 type Option func(*httpClient)
 
@@ -38,17 +35,12 @@ func WithBaseURL(url string) Option {
 	}
 }
 
-// WithHTTPClient provides a custom HTTP client.
-func WithHTTPClient(doer HTTPDoer) Option {
+// WithRetryConfig overrides the retry settings (useful for testing).
+func WithRetryConfig(retryMax int, retryWaitMin, retryWaitMax time.Duration) Option {
 	return func(c *httpClient) {
-		c.http = doer
-	}
-}
-
-// WithBackoffs overrides the retry backoff durations (useful for testing).
-func WithBackoffs(backoffs []time.Duration) Option {
-	return func(c *httpClient) {
-		c.backoffs = backoffs
+		c.client.RetryMax = retryMax
+		c.client.RetryWaitMin = retryWaitMin
+		c.client.RetryWaitMax = retryWaitMax
 	}
 }
 
@@ -60,27 +52,47 @@ func WithOrgID(orgID int) Option {
 }
 
 type httpClient struct {
-	baseURL  string
-	apiKey   string
-	orgID    int
-	http     HTTPDoer
-	logger   *slog.Logger
-	backoffs []time.Duration
+	baseURL string
+	apiKey  string
+	orgID   int
+	client  *retryablehttp.Client
+	logger  *slog.Logger
 }
 
 // NewClient creates a new Hologram API client.
 func NewClient(apiKey string, logger *slog.Logger, opts ...Option) Client {
+	rc := retryablehttp.NewClient()
+	rc.RetryMax = 3
+	rc.RetryWaitMin = 5 * time.Second
+	rc.RetryWaitMax = 20 * time.Second
+	rc.HTTPClient.Timeout = 30 * time.Second
+	rc.Logger = nil // suppress default logger
+	rc.CheckRetry = rateLimitRetryPolicy
+
 	c := &httpClient{
-		baseURL:  defaultBaseURL,
-		apiKey:   apiKey,
-		http:     &http.Client{Timeout: 30 * time.Second},
-		logger:   logger,
-		backoffs: []time.Duration{5 * time.Second, 10 * time.Second, 20 * time.Second},
+		baseURL: defaultBaseURL,
+		apiKey:  apiKey,
+		client:  rc,
+		logger:  logger,
 	}
 	for _, opt := range opts {
 		opt(c)
 	}
 	return c
+}
+
+// rateLimitRetryPolicy retries only on 429 Too Many Requests.
+func rateLimitRetryPolicy(ctx context.Context, resp *http.Response, err error) (bool, error) {
+	if ctx.Err() != nil {
+		return false, ctx.Err()
+	}
+	if err != nil {
+		return false, err
+	}
+	if resp.StatusCode == http.StatusTooManyRequests {
+		return true, nil
+	}
+	return false, nil
 }
 
 // ListDevices fetches all devices, handling pagination automatically.
@@ -97,7 +109,7 @@ func (c *httpClient) ListDevices(ctx context.Context) ([]Device, error) {
 			url += fmt.Sprintf("&startafter=%d", startAfter)
 		}
 
-		resp, err := c.doWithRetry(ctx, http.MethodGet, url, "")
+		resp, err := c.doRequest(ctx, http.MethodGet, url, "")
 		if err != nil {
 			return nil, fmt.Errorf("listing devices: %w", err)
 		}
@@ -136,7 +148,7 @@ func (c *httpClient) SetDeviceState(ctx context.Context, orgID, deviceID int, st
 	body := fmt.Sprintf(`{"state":%q,"deviceids":[%d],"orgid":%d}`, state, deviceID, orgID)
 	url := c.baseURL + "/devices/batch/state"
 
-	respBody, err := c.doWithRetry(ctx, http.MethodPost, url, body)
+	respBody, err := c.doRequest(ctx, http.MethodPost, url, body)
 	if err != nil {
 		return fmt.Errorf("setting device state: %w", err)
 	}
@@ -154,60 +166,42 @@ func (c *httpClient) SetDeviceState(ctx context.Context, orgID, deviceID int, st
 	return nil
 }
 
-// doWithRetry performs an HTTP request with retry on 429 status codes.
-func (c *httpClient) doWithRetry(ctx context.Context, method, url, body string) ([]byte, error) {
-	for attempt := 0; attempt <= len(c.backoffs); attempt++ {
-		var bodyReader io.Reader
-		if body != "" {
-			bodyReader = strings.NewReader(body)
-		}
-
-		req, err := http.NewRequestWithContext(ctx, method, url, bodyReader)
-		if err != nil {
-			return nil, err
-		}
-
-		req.SetBasicAuth("apikey", c.apiKey)
-		if body != "" {
-			req.Header.Set("Content-Type", "application/json")
-		}
-
-		resp, err := c.http.Do(req)
-		if err != nil {
-			return nil, err
-		}
-
-		respBody, err := io.ReadAll(resp.Body)
-		_ = resp.Body.Close()
-		if err != nil {
-			return nil, fmt.Errorf("reading response body: %w", err)
-		}
-
-		if resp.StatusCode == http.StatusTooManyRequests {
-			if attempt < len(c.backoffs) {
-				wait := c.backoffs[attempt]
-				c.logger.Warn("rate limited, retrying", "attempt", attempt+1, "wait", wait)
-				select {
-				case <-time.After(wait):
-					continue
-				case <-ctx.Done():
-					return nil, ctx.Err()
-				}
-			}
-			return nil, fmt.Errorf("rate limited after %d retries", len(c.backoffs))
-		}
-
-		if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-			return nil, &APIError{
-				StatusCode: resp.StatusCode,
-				Message:    "unexpected status: " + strconv.Itoa(resp.StatusCode) + " body: " + string(respBody),
-			}
-		}
-
-		return respBody, nil
+// doRequest performs an HTTP request using the retryable client.
+func (c *httpClient) doRequest(ctx context.Context, method, url, body string) ([]byte, error) {
+	var bodyReader io.Reader
+	if body != "" {
+		bodyReader = strings.NewReader(body)
 	}
 
-	return nil, fmt.Errorf("exhausted retries")
+	req, err := retryablehttp.NewRequestWithContext(ctx, method, url, bodyReader)
+	if err != nil {
+		return nil, err
+	}
+
+	req.SetBasicAuth("apikey", c.apiKey)
+	if body != "" {
+		req.Header.Set("Content-Type", "application/json")
+	}
+
+	resp, err := c.client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	respBody, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("reading response body: %w", err)
+	}
+
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		return nil, &APIError{
+			StatusCode: resp.StatusCode,
+			Message:    "unexpected status: " + strconv.Itoa(resp.StatusCode) + " body: " + string(respBody),
+		}
+	}
+
+	return respBody, nil
 }
 
 // APIError represents an error from the Hologram API.
