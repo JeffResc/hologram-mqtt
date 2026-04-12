@@ -67,6 +67,10 @@ func (m *MockPublisher) IsConnected() bool {
 	return m.Connected
 }
 
+func (m *MockPublisher) SubscriptionsHealthy() bool {
+	return true
+}
+
 func (m *MockPublisher) Disconnect() {
 	m.mu.Lock()
 	defer m.mu.Unlock()

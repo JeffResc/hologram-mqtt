@@ -80,12 +80,11 @@ func (b *Bridge) Run(ctx context.Context) error {
 	}
 }
 
-// Healthy returns true when the MQTT client is connected and polling is
-// succeeding. Before the first poll completes, only the MQTT connection
-// is checked. After that, the last successful poll must be within
-// 2x the poll interval.
+// Healthy returns true when the MQTT client is connected, subscriptions
+// are active, and polling is succeeding. Before the first poll completes,
+// only the connection and subscription state are checked.
 func (b *Bridge) Healthy() bool {
-	if !b.mqtt.IsConnected() {
+	if !b.mqtt.IsConnected() || !b.mqtt.SubscriptionsHealthy() {
 		return false
 	}
 	b.mu.RLock()
