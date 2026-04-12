@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/caarlos0/env/v11"
 	"gopkg.in/yaml.v3"
 )
 
@@ -17,45 +18,45 @@ type Config struct {
 	MQTT         MQTTConfig      `yaml:"mqtt"`
 	Discovery    DiscoveryConfig `yaml:"discovery"`
 	Health       HealthConfig    `yaml:"health"`
-	PollInterval time.Duration   `yaml:"poll_interval"`
-	LogLevel     string          `yaml:"log_level"`
+	PollInterval time.Duration   `yaml:"poll_interval" env:"POLL_INTERVAL"`
+	LogLevel     string          `yaml:"log_level"     env:"LOG_LEVEL"`
 }
 
 // HologramConfig holds Hologram API settings.
 type HologramConfig struct {
-	APIKey string `yaml:"api_key"`
-	OrgID  int    `yaml:"org_id"`
+	APIKey string `yaml:"api_key" env:"HOLOGRAM_API_KEY"`
+	OrgID  int    `yaml:"org_id"  env:"HOLOGRAM_ORG_ID"`
 }
 
 // MQTTConfig holds MQTT broker connection settings.
 type MQTTConfig struct {
-	Broker      string    `yaml:"broker"`
-	Username    string    `yaml:"username"`
-	Password    string    `yaml:"password"`
-	ClientID    string    `yaml:"client_id"`
-	TopicPrefix string    `yaml:"topic_prefix"`
+	Broker      string    `yaml:"broker"       env:"MQTT_BROKER"`
+	Username    string    `yaml:"username"     env:"MQTT_USERNAME"`
+	Password    string    `yaml:"password"     env:"MQTT_PASSWORD"`
+	ClientID    string    `yaml:"client_id"    env:"MQTT_CLIENT_ID"`
+	TopicPrefix string    `yaml:"topic_prefix" env:"MQTT_TOPIC_PREFIX"`
 	TLS         TLSConfig `yaml:"tls"`
 }
 
 // TLSConfig holds TLS settings for the MQTT connection.
 type TLSConfig struct {
-	Enabled    bool   `yaml:"enabled"`
-	CACert     string `yaml:"ca_cert"`
-	ClientCert string `yaml:"client_cert"`
-	ClientKey  string `yaml:"client_key"`
-	SkipVerify bool   `yaml:"skip_verify"`
+	Enabled    bool   `yaml:"enabled"     env:"MQTT_TLS_ENABLED"`
+	CACert     string `yaml:"ca_cert"     env:"MQTT_TLS_CA_CERT"`
+	ClientCert string `yaml:"client_cert" env:"MQTT_TLS_CLIENT_CERT"`
+	ClientKey  string `yaml:"client_key"  env:"MQTT_TLS_CLIENT_KEY"`
+	SkipVerify bool   `yaml:"skip_verify" env:"MQTT_TLS_SKIP_VERIFY"`
 }
 
 // DiscoveryConfig holds Home Assistant MQTT discovery settings.
 type DiscoveryConfig struct {
-	Prefix  string `yaml:"prefix"`
-	Enabled bool   `yaml:"enabled"`
+	Prefix  string `yaml:"prefix"  env:"DISCOVERY_PREFIX"`
+	Enabled bool   `yaml:"enabled" env:"DISCOVERY_ENABLED"`
 }
 
 // HealthConfig holds health check HTTP server settings.
 type HealthConfig struct {
-	Enabled bool   `yaml:"enabled"`
-	Addr    string `yaml:"addr"`
+	Enabled bool   `yaml:"enabled" env:"HEALTH_ENABLED"`
+	Addr    string `yaml:"addr"    env:"HEALTH_ADDR"`
 }
 
 // defaults returns a Config with default values.
@@ -79,8 +80,7 @@ func defaults() Config {
 }
 
 // Load reads configuration from a YAML file (if present) and overlays
-// environment variables. The file path is taken from the CONFIG_FILE
-// environment variable, defaulting to "config.yaml".
+// environment variables. Environment variables take precedence over the config file.
 func Load() (*Config, error) {
 	cfg := defaults()
 
@@ -93,8 +93,14 @@ func Load() (*Config, error) {
 		return nil, fmt.Errorf("reading config file: %w", err)
 	}
 
-	if err := applyEnv(&cfg); err != nil {
+	// Handle POLL_INTERVAL specially since it accepts both Go duration
+	// strings (e.g. "5m") and integer seconds (e.g. "60").
+	if err := parsePollInterval(&cfg); err != nil {
 		return nil, err
+	}
+
+	if err := env.Parse(&cfg); err != nil {
+		return nil, fmt.Errorf("parsing environment variables: %w", err)
 	}
 
 	if err := validate(&cfg); err != nil {
@@ -112,72 +118,31 @@ func loadFile(path string, cfg *Config) error {
 	return yaml.Unmarshal(data, cfg)
 }
 
-func applyEnv(cfg *Config) error {
-	if v := os.Getenv("HOLOGRAM_API_KEY"); v != "" {
-		cfg.Hologram.APIKey = v
+// parsePollInterval handles the dual-format POLL_INTERVAL env var
+// (Go duration or integer seconds) before env.Parse runs. This is
+// needed because env.Parse only handles time.Duration format.
+func parsePollInterval(cfg *Config) error {
+	v := os.Getenv("POLL_INTERVAL")
+	if v == "" {
+		return nil
 	}
-	if v := os.Getenv("HOLOGRAM_ORG_ID"); v != "" {
-		id, err := strconv.Atoi(v)
-		if err != nil {
-			return fmt.Errorf("invalid HOLOGRAM_ORG_ID %q: %w", v, err)
-		}
-		cfg.Hologram.OrgID = id
+
+	// Try Go duration first (env.Parse will handle this too, but we
+	// need to also handle the integer-seconds case)
+	if d, err := time.ParseDuration(v); err == nil {
+		cfg.PollInterval = d
+		return nil
 	}
-	if v := os.Getenv("MQTT_BROKER"); v != "" {
-		cfg.MQTT.Broker = v
+
+	// Try integer seconds — unset the env var so env.Parse doesn't
+	// try to parse the non-standard format as a time.Duration.
+	if secs, err := strconv.Atoi(v); err == nil {
+		cfg.PollInterval = time.Duration(secs) * time.Second
+		_ = os.Unsetenv("POLL_INTERVAL")
+		return nil
 	}
-	if v := os.Getenv("MQTT_USERNAME"); v != "" {
-		cfg.MQTT.Username = v
-	}
-	if v := os.Getenv("MQTT_PASSWORD"); v != "" {
-		cfg.MQTT.Password = v
-	}
-	if v := os.Getenv("MQTT_CLIENT_ID"); v != "" {
-		cfg.MQTT.ClientID = v
-	}
-	if v := os.Getenv("MQTT_TOPIC_PREFIX"); v != "" {
-		cfg.MQTT.TopicPrefix = v
-	}
-	if v := os.Getenv("MQTT_TLS_ENABLED"); v != "" {
-		cfg.MQTT.TLS.Enabled = v == "true" || v == "1"
-	}
-	if v := os.Getenv("MQTT_TLS_CA_CERT"); v != "" {
-		cfg.MQTT.TLS.CACert = v
-	}
-	if v := os.Getenv("MQTT_TLS_CLIENT_CERT"); v != "" {
-		cfg.MQTT.TLS.ClientCert = v
-	}
-	if v := os.Getenv("MQTT_TLS_CLIENT_KEY"); v != "" {
-		cfg.MQTT.TLS.ClientKey = v
-	}
-	if v := os.Getenv("MQTT_TLS_SKIP_VERIFY"); v != "" {
-		cfg.MQTT.TLS.SkipVerify = v == "true" || v == "1"
-	}
-	if v := os.Getenv("DISCOVERY_PREFIX"); v != "" {
-		cfg.Discovery.Prefix = v
-	}
-	if v := os.Getenv("DISCOVERY_ENABLED"); v != "" {
-		cfg.Discovery.Enabled = v == "true" || v == "1"
-	}
-	if v := os.Getenv("HEALTH_ENABLED"); v != "" {
-		cfg.Health.Enabled = v == "true" || v == "1"
-	}
-	if v := os.Getenv("HEALTH_ADDR"); v != "" {
-		cfg.Health.Addr = v
-	}
-	if v := os.Getenv("POLL_INTERVAL"); v != "" {
-		if d, err := time.ParseDuration(v); err == nil {
-			cfg.PollInterval = d
-		} else if secs, err := strconv.Atoi(v); err == nil {
-			cfg.PollInterval = time.Duration(secs) * time.Second
-		} else {
-			return fmt.Errorf("invalid POLL_INTERVAL %q: must be a Go duration (e.g. 5m) or integer seconds", v)
-		}
-	}
-	if v := os.Getenv("LOG_LEVEL"); v != "" {
-		cfg.LogLevel = v
-	}
-	return nil
+
+	return fmt.Errorf("invalid POLL_INTERVAL %q: must be a Go duration (e.g. 5m) or integer seconds", v)
 }
 
 func validate(cfg *Config) error {
