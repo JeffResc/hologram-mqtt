@@ -17,6 +17,15 @@ import (
 	"github.com/jeffresc/hologram-mqtt/internal/mqtt"
 )
 
+// commandDebounceWindow is the minimum time between duplicate commands
+// for the same device+state before they are forwarded to the API.
+const commandDebounceWindow = 2 * time.Second
+
+type lastCommandEntry struct {
+	state string
+	at    time.Time
+}
+
 // Bridge ties together the Hologram API client, MQTT publisher,
 // and HA discovery publisher into a single polling loop.
 type Bridge struct {
@@ -27,6 +36,7 @@ type Bridge struct {
 	ctx          context.Context
 	mu           sync.RWMutex
 	knownDevices map[int]hologram.Device
+	lastCommands map[int]lastCommandEntry
 	logger       *slog.Logger
 }
 
@@ -39,6 +49,7 @@ func New(cfg *config.Config, hc hologram.Client, mc mqtt.Publisher, logger *slog
 		discovery:    dp,
 		config:       cfg,
 		knownDevices: make(map[int]hologram.Device),
+		lastCommands: make(map[int]lastCommandEntry),
 		logger:       logger,
 	}
 }
@@ -181,10 +192,16 @@ func (b *Bridge) handleCommand(topic string, payload []byte) {
 
 	b.mu.RLock()
 	device, ok := b.knownDevices[deviceID]
+	last, hasLast := b.lastCommands[deviceID]
 	b.mu.RUnlock()
 
 	if !ok {
 		b.logger.Error("unknown device in command", "device_id", deviceID)
+		return
+	}
+
+	if hasLast && last.state == state && time.Since(last.at) < commandDebounceWindow {
+		b.logger.Debug("debounced duplicate command", "device_id", deviceID, "state", state)
 		return
 	}
 
@@ -200,6 +217,7 @@ func (b *Bridge) handleCommand(topic string, payload []byte) {
 	device = b.knownDevices[deviceID]
 	updated := copyDeviceWithState(device, state)
 	b.knownDevices[deviceID] = updated
+	b.lastCommands[deviceID] = lastCommandEntry{state: state, at: time.Now()}
 	b.mu.Unlock()
 
 	if err := b.discovery.PublishStates([]hologram.Device{updated}); err != nil {

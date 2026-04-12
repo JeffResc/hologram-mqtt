@@ -391,9 +391,11 @@ func TestBridgeConcurrentCommands(t *testing.T) {
 	}
 	wg.Wait()
 
-	// Verify no panics occurred and state calls were made
+	// Verify no panics occurred and at least one call was made per device.
+	// Debouncing filters duplicate same-state commands within the window,
+	// so the exact count depends on timing.
 	mockHolo.mu.Lock()
-	assert.Equal(t, 100, mockHolo.stateCalls)
+	assert.GreaterOrEqual(t, mockHolo.stateCalls, 2, "should have at least one call per device")
 	mockHolo.mu.Unlock()
 }
 
