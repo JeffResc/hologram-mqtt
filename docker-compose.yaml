@@ -24,15 +24,12 @@ services:
     #   - ./certs:/certs:ro
     ports:
       - "8080:8080"
-    healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/healthz"]
-      interval: 30s
-      timeout: 5s
-      retries: 3
-      start_period: 10s
+    # Note: distroless image has no shell or wget/curl, so CMD-based
+    # healthchecks cannot be used. The application exposes /healthz
+    # internally — use an external monitoring tool or reverse proxy
+    # to check http://localhost:8080/healthz if needed.
     depends_on:
-      mqtt:
-        condition: service_healthy
+      - mqtt
 
   mqtt:
     image: eclipse-mosquitto:2

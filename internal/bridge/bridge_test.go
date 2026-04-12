@@ -377,23 +377,30 @@ func TestBridgeConcurrentCommands(t *testing.T) {
 	b.knownDevices[2] = hologram.Device{ID: 2, OrgID: 10, Name: "D2", Links: &hologram.DeviceLinks{Cellular: []hologram.CellularLink{{State: "LIVE"}}}}
 
 	var wg sync.WaitGroup
-	// Fire many concurrent commands to test mutex safety
+	// Fire many concurrent commands with alternating states so debounce
+	// doesn't filter them, ensuring concurrent API call paths are exercised.
 	for i := 0; i < 50; i++ {
 		wg.Add(2)
-		go func() {
+		cmd1 := "ON"
+		if i%2 == 0 {
+			cmd1 = "OFF"
+		}
+		cmd2 := "OFF"
+		if i%2 == 0 {
+			cmd2 = "ON"
+		}
+		go func(c string) {
 			defer wg.Done()
-			b.handleCommand("hologram/device/1/switch/set", []byte("OFF"))
-		}()
-		go func() {
+			b.handleCommand("hologram/device/1/switch/set", []byte(c))
+		}(cmd1)
+		go func(c string) {
 			defer wg.Done()
-			b.handleCommand("hologram/device/2/switch/set", []byte("ON"))
-		}()
+			b.handleCommand("hologram/device/2/switch/set", []byte(c))
+		}(cmd2)
 	}
 	wg.Wait()
 
-	// Verify no panics occurred and at least one call was made per device.
-	// Debouncing filters duplicate same-state commands within the window,
-	// so the exact count depends on timing.
+	// Verify no panics occurred and API calls were made for both devices
 	mockHolo.mu.Lock()
 	assert.GreaterOrEqual(t, mockHolo.stateCalls, 2, "should have at least one call per device")
 	mockHolo.mu.Unlock()

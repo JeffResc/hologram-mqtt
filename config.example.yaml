@@ -4,7 +4,8 @@ hologram:
   # Can also be set via HOLOGRAM_API_KEY environment variable
   api_key: ""
 
-  # Organization ID (optional, required if your API key has access to multiple orgs)
+  # Organization ID (optional, filters devices by org)
+  # Must be a valid integer — invalid values will cause a startup error
   # Can also be set via HOLOGRAM_ORG_ID environment variable
   org_id: 0
 
@@ -23,7 +24,8 @@ mqtt:
   # Can also be set via MQTT_CLIENT_ID environment variable
   client_id: "hologram-mqtt"
 
-  # Topic prefix for all MQTT messages (default: hologram-mqtt)
+  # Topic prefix for all MQTT messages (required, default: hologram)
+  # Must be non-empty — used as the root of all MQTT topic hierarchies
   # Can also be set via MQTT_TOPIC_PREFIX environment variable
   topic_prefix: "hologram"
 
@@ -71,8 +73,9 @@ health:
   addr: ":8080"
 
 # How often to poll the Hologram API for device updates (default: 5m)
+# Minimum: 10s — invalid values will cause a startup error
 # Can also be set via POLL_INTERVAL environment variable
-# Accepts Go duration strings (e.g., "5m", "30s", "1h") or seconds as integer
+# Accepts Go duration strings (e.g., "5m", "30s", "1h") or integer seconds
 poll_interval: 5m
 
 # Log level: debug, info, warn, error (default: info)

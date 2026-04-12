@@ -78,7 +78,7 @@ func SensorConfigs(d hologram.Device, topicPrefix, discoveryPrefix string) []Ent
 	avail := newAvailability(topicPrefix, d.ID)
 	stateTopic := fmt.Sprintf("%s/device/%d/attributes", topicPrefix, d.ID)
 
-	var configs []EntityConfig
+	configs := make([]EntityConfig, 0, len(sensors))
 	for _, s := range sensors {
 		nodeID := fmt.Sprintf("hologram_%d", d.ID)
 		objectID := fmt.Sprintf("hologram_%d_%s", d.ID, s.objectSuffix)

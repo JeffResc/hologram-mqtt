@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	_ "go.uber.org/automaxprocs"
 
 	"github.com/jeffresc/hologram-mqtt/internal/bridge"
 	"github.com/jeffresc/hologram-mqtt/internal/config"
@@ -89,8 +90,9 @@ func main() {
 	}
 
 	if err := b.Run(ctx); err != nil {
+		mc.Disconnect()
 		logger.Error("bridge error", "error", err)
-		os.Exit(1)
+		return
 	}
 
 	mc.Disconnect()
@@ -99,14 +101,7 @@ func main() {
 
 func setupLogger(level string) *slog.Logger {
 	var logLevel slog.Level
-	switch level {
-	case "debug":
-		logLevel = slog.LevelDebug
-	case "warn":
-		logLevel = slog.LevelWarn
-	case "error":
-		logLevel = slog.LevelError
-	default:
+	if err := logLevel.UnmarshalText([]byte(level)); err != nil {
 		logLevel = slog.LevelInfo
 	}
 
