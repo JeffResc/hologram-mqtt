@@ -18,6 +18,7 @@ type Publisher interface {
 	Publish(topic string, qos byte, retained bool, payload []byte) error
 	Subscribe(topic string, qos byte, handler MessageHandler) error
 	IsConnected() bool
+	SubscriptionsHealthy() bool
 	Disconnect()
 }
 
@@ -44,19 +45,21 @@ type TLSConfig struct {
 }
 
 type client struct {
-	paho          pahomqtt.Client
-	topicPrefix   string
-	logger        *slog.Logger
-	mu            sync.Mutex
-	subscriptions map[string]pahomqtt.MessageHandler
+	paho                 pahomqtt.Client
+	topicPrefix          string
+	logger               *slog.Logger
+	mu                   sync.Mutex
+	subscriptions        map[string]pahomqtt.MessageHandler
+	subscriptionsHealthy bool
 }
 
 // NewClient creates and connects a new MQTT client with LWT configured.
 func NewClient(cfg ClientConfig, logger *slog.Logger) (Publisher, error) {
 	c := &client{
-		topicPrefix:   cfg.TopicPrefix,
-		logger:        logger,
-		subscriptions: make(map[string]pahomqtt.MessageHandler),
+		topicPrefix:          cfg.TopicPrefix,
+		logger:               logger,
+		subscriptions:        make(map[string]pahomqtt.MessageHandler),
+		subscriptionsHealthy: true,
 	}
 
 	opts := pahomqtt.NewClientOptions().
@@ -143,13 +146,19 @@ func (c *client) onConnect(_ pahomqtt.Client) {
 	}
 	c.mu.Unlock()
 
+	healthy := true
 	for topic, handler := range subs {
 		token := c.paho.Subscribe(topic, 1, handler)
 		token.Wait()
 		if token.Error() != nil {
 			c.logger.Error("failed to re-subscribe", "topic", topic, "error", token.Error())
+			healthy = false
 		}
 	}
+
+	c.mu.Lock()
+	c.subscriptionsHealthy = healthy
+	c.mu.Unlock()
 }
 
 func (c *client) onConnectionLost(_ pahomqtt.Client, err error) {
@@ -185,6 +194,14 @@ func (c *client) Subscribe(topic string, qos byte, handler MessageHandler) error
 // IsConnected returns whether the client is connected to the broker.
 func (c *client) IsConnected() bool {
 	return c.paho.IsConnectionOpen()
+}
+
+// SubscriptionsHealthy returns whether all topic subscriptions are active.
+// Returns false if any re-subscription failed after a reconnect.
+func (c *client) SubscriptionsHealthy() bool {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	return c.subscriptionsHealthy
 }
 
 // Disconnect publishes the offline status and disconnects from the broker.

@@ -75,11 +75,10 @@ func (b *Bridge) Run(ctx context.Context) error {
 	}
 }
 
-// Healthy returns true when the MQTT client is connected and at least one
-// successful poll has been completed (i.e. knownDevices has been populated
-// at least once).
+// Healthy returns true when the MQTT client is connected and
+// subscriptions are active.
 func (b *Bridge) Healthy() bool {
-	return b.mqtt.IsConnected()
+	return b.mqtt.IsConnected() && b.mqtt.SubscriptionsHealthy()
 }
 
 func (b *Bridge) poll(ctx context.Context) error {
