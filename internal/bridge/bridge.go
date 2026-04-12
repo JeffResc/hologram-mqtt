@@ -24,6 +24,7 @@ type Bridge struct {
 	mqtt         mqtt.Publisher
 	discovery    *discovery.Publisher
 	config       *config.Config
+	ctx          context.Context
 	mu           sync.RWMutex
 	knownDevices map[int]hologram.Device
 	logger       *slog.Logger
@@ -44,6 +45,8 @@ func New(cfg *config.Config, hc hologram.Client, mc mqtt.Publisher, logger *slog
 
 // Run starts the bridge loop. It blocks until the context is cancelled.
 func (b *Bridge) Run(ctx context.Context) error {
+	b.ctx = ctx
+
 	// Subscribe to switch command topics
 	commandTopic := b.config.MQTT.TopicPrefix + "/device/+/switch/set"
 	if err := b.mqtt.Subscribe(commandTopic, 1, b.handleCommand); err != nil {
@@ -187,7 +190,7 @@ func (b *Bridge) handleCommand(topic string, payload []byte) {
 
 	b.logger.Info("executing command", "device_id", deviceID, "device_name", device.Name, "state", state)
 
-	if err := b.hologram.SetDeviceState(context.Background(), device.OrgID, deviceID, state); err != nil {
+	if err := b.hologram.SetDeviceState(b.ctx, device.OrgID, deviceID, state); err != nil {
 		b.logger.Error("failed to set device state", "device_id", deviceID, "error", err)
 		return
 	}
