@@ -44,7 +44,7 @@ config.yaml
 certs/
 
 # Build artifacts
-hologram-mqtt
+/hologram-mqtt
 
 # IDE
 .idea/
