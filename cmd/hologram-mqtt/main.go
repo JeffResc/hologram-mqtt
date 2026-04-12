@@ -9,6 +9,8 @@ import (
 	"os/signal"
 	"syscall"
 
+	"github.com/prometheus/client_golang/prometheus/promhttp"
+
 	"github.com/jeffresc/hologram-mqtt/internal/bridge"
 	"github.com/jeffresc/hologram-mqtt/internal/config"
 	"github.com/jeffresc/hologram-mqtt/internal/discovery"
@@ -66,6 +68,7 @@ func main() {
 	if cfg.Health.Enabled {
 		mux := http.NewServeMux()
 		mux.HandleFunc("/healthz", b.HealthHandler())
+		mux.Handle("/metrics", promhttp.Handler())
 		healthServer := &http.Server{Addr: cfg.Health.Addr, Handler: mux}
 
 		go func() {
