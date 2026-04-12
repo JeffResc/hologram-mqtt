@@ -24,10 +24,11 @@ type Bridge struct {
 	mqtt         mqtt.Publisher
 	discovery    *discovery.Publisher
 	config       *config.Config
-	ctx          context.Context
-	mu           sync.RWMutex
-	knownDevices map[int]hologram.Device
-	logger       *slog.Logger
+	ctx                context.Context
+	mu                 sync.RWMutex
+	knownDevices       map[int]hologram.Device
+	lastSuccessfulPoll time.Time
+	logger             *slog.Logger
 }
 
 // New creates a new Bridge instance.
@@ -75,11 +76,21 @@ func (b *Bridge) Run(ctx context.Context) error {
 	}
 }
 
-// Healthy returns true when the MQTT client is connected and at least one
-// successful poll has been completed (i.e. knownDevices has been populated
-// at least once).
+// Healthy returns true when the MQTT client is connected and polling is
+// succeeding. Before the first poll completes, only the MQTT connection
+// is checked. After that, the last successful poll must be within
+// 2x the poll interval.
 func (b *Bridge) Healthy() bool {
-	return b.mqtt.IsConnected()
+	if !b.mqtt.IsConnected() {
+		return false
+	}
+	b.mu.RLock()
+	lastPoll := b.lastSuccessfulPoll
+	b.mu.RUnlock()
+	if lastPoll.IsZero() {
+		return true // haven't had a chance to poll yet
+	}
+	return time.Since(lastPoll) < 2*b.config.PollInterval
 }
 
 func (b *Bridge) poll(ctx context.Context) error {
@@ -139,6 +150,7 @@ func (b *Bridge) poll(ctx context.Context) error {
 	removedCount := len(removed)
 	newCount := len(devices) - (len(b.knownDevices) - removedCount)
 	b.knownDevices = newKnown
+	b.lastSuccessfulPoll = time.Now()
 
 	b.logger.Info("poll complete", "devices", len(devices), "new", newCount, "removed", removedCount)
 	return nil
