@@ -187,6 +187,9 @@ func validate(cfg *Config) error {
 	if cfg.MQTT.Broker == "" {
 		return errors.New("MQTT broker address is required (set mqtt.broker or MQTT_BROKER)")
 	}
+	if cfg.MQTT.TopicPrefix == "" {
+		return errors.New("MQTT topic prefix is required (set mqtt.topic_prefix or MQTT_TOPIC_PREFIX)")
+	}
 	if cfg.PollInterval < 10*time.Second {
 		return fmt.Errorf("poll interval must be at least 10s, got %s", cfg.PollInterval)
 	}

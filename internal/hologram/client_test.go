@@ -9,6 +9,7 @@ import (
 	"net/http/httptest"
 	"sync/atomic"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -16,6 +17,10 @@ import (
 
 func testLogger() *slog.Logger {
 	return slog.New(slog.NewTextHandler(io.Discard, nil))
+}
+
+func fastBackoffs() Option {
+	return WithBackoffs([]time.Duration{1 * time.Millisecond, 1 * time.Millisecond, 1 * time.Millisecond})
 }
 
 func TestListDevicesSinglePage(t *testing.T) {
@@ -40,7 +45,7 @@ func TestListDevicesSinglePage(t *testing.T) {
 	}))
 	defer server.Close()
 
-	client := NewClient("test-key", testLogger(), WithBaseURL(server.URL))
+	client := NewClient("test-key", testLogger(), WithBaseURL(server.URL), fastBackoffs())
 	devices, err := client.ListDevices(context.Background())
 	require.NoError(t, err)
 	assert.Len(t, devices, 2)
@@ -71,7 +76,7 @@ func TestListDevicesPagination(t *testing.T) {
 	}))
 	defer server.Close()
 
-	client := NewClient("test-key", testLogger(), WithBaseURL(server.URL))
+	client := NewClient("test-key", testLogger(), WithBaseURL(server.URL), fastBackoffs())
 	devices, err := client.ListDevices(context.Background())
 	require.NoError(t, err)
 	assert.Len(t, devices, 2)
@@ -85,7 +90,7 @@ func TestListDevicesAPIError(t *testing.T) {
 	}))
 	defer server.Close()
 
-	client := NewClient("bad-key", testLogger(), WithBaseURL(server.URL))
+	client := NewClient("bad-key", testLogger(), WithBaseURL(server.URL), fastBackoffs())
 	_, err := client.ListDevices(context.Background())
 	require.Error(t, err)
 
@@ -112,7 +117,7 @@ func TestSetDeviceState(t *testing.T) {
 	}))
 	defer server.Close()
 
-	client := NewClient("test-key", testLogger(), WithBaseURL(server.URL))
+	client := NewClient("test-key", testLogger(), WithBaseURL(server.URL), fastBackoffs())
 	err := client.SetDeviceState(context.Background(), 10, 42, "pause")
 	require.NoError(t, err)
 }
@@ -143,10 +148,11 @@ func TestRateLimitRetry(t *testing.T) {
 
 	// Use a client with short backoffs for testing
 	c := &httpClient{
-		baseURL: server.URL,
-		apiKey:  "test-key",
-		http:    &http.Client{},
-		logger:  testLogger(),
+		baseURL:  server.URL,
+		apiKey:   "test-key",
+		http:     &http.Client{},
+		logger:   testLogger(),
+		backoffs: []time.Duration{1 * time.Millisecond, 1 * time.Millisecond, 1 * time.Millisecond},
 	}
 
 	devices, err := c.ListDevices(context.Background())
@@ -164,7 +170,7 @@ func TestContextCancellation(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel() // Cancel immediately
 
-	client := NewClient("test-key", testLogger(), WithBaseURL(server.URL))
+	client := NewClient("test-key", testLogger(), WithBaseURL(server.URL), fastBackoffs())
 	_, err := client.ListDevices(ctx)
 	require.Error(t, err)
 }
@@ -182,7 +188,7 @@ func TestListDevicesEmptyResponse(t *testing.T) {
 	}))
 	defer server.Close()
 
-	client := NewClient("test-key", testLogger(), WithBaseURL(server.URL))
+	client := NewClient("test-key", testLogger(), WithBaseURL(server.URL), fastBackoffs())
 	devices, err := client.ListDevices(context.Background())
 	require.NoError(t, err)
 	assert.Empty(t, devices)
@@ -198,7 +204,7 @@ func TestListDevicesSuccessFalse(t *testing.T) {
 	}))
 	defer server.Close()
 
-	client := NewClient("test-key", testLogger(), WithBaseURL(server.URL))
+	client := NewClient("test-key", testLogger(), WithBaseURL(server.URL), fastBackoffs())
 	_, err := client.ListDevices(context.Background())
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "success=false")
@@ -210,7 +216,7 @@ func TestListDevicesInvalidJSON(t *testing.T) {
 	}))
 	defer server.Close()
 
-	client := NewClient("test-key", testLogger(), WithBaseURL(server.URL))
+	client := NewClient("test-key", testLogger(), WithBaseURL(server.URL), fastBackoffs())
 	_, err := client.ListDevices(context.Background())
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "decoding device list")
@@ -227,7 +233,7 @@ func TestSetDeviceStateLive(t *testing.T) {
 	}))
 	defer server.Close()
 
-	client := NewClient("test-key", testLogger(), WithBaseURL(server.URL))
+	client := NewClient("test-key", testLogger(), WithBaseURL(server.URL), fastBackoffs())
 	err := client.SetDeviceState(context.Background(), 10, 42, "live")
 	require.NoError(t, err)
 }
@@ -239,7 +245,7 @@ func TestSetDeviceStateSuccessFalse(t *testing.T) {
 	}))
 	defer server.Close()
 
-	client := NewClient("test-key", testLogger(), WithBaseURL(server.URL))
+	client := NewClient("test-key", testLogger(), WithBaseURL(server.URL), fastBackoffs())
 	err := client.SetDeviceState(context.Background(), 10, 42, "pause")
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "success=false")
@@ -252,7 +258,7 @@ func TestSetDeviceStateServerError(t *testing.T) {
 	}))
 	defer server.Close()
 
-	client := NewClient("test-key", testLogger(), WithBaseURL(server.URL))
+	client := NewClient("test-key", testLogger(), WithBaseURL(server.URL), fastBackoffs())
 	err := client.SetDeviceState(context.Background(), 10, 42, "pause")
 	require.Error(t, err)
 
@@ -287,7 +293,7 @@ func TestListDevicesWithNilOptionalFields(t *testing.T) {
 	}))
 	defer server.Close()
 
-	client := NewClient("test-key", testLogger(), WithBaseURL(server.URL))
+	client := NewClient("test-key", testLogger(), WithBaseURL(server.URL), fastBackoffs())
 	devices, err := client.ListDevices(context.Background())
 	require.NoError(t, err)
 	require.Len(t, devices, 1)
@@ -299,7 +305,7 @@ func TestListDevicesWithNilOptionalFields(t *testing.T) {
 func TestWithHTTPClient(t *testing.T) {
 	// Verify the WithHTTPClient option works
 	customHTTP := &http.Client{}
-	client := NewClient("test-key", testLogger(), WithHTTPClient(customHTTP))
+	client := NewClient("test-key", testLogger(), WithHTTPClient(customHTTP), fastBackoffs())
 	// Just verify it doesn't panic
 	assert.NotNil(t, client)
 }
