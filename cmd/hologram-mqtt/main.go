@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	_ "go.uber.org/automaxprocs"
 
 	"github.com/jeffresc/hologram-mqtt/internal/bridge"
 	"github.com/jeffresc/hologram-mqtt/internal/config"
