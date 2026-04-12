@@ -1,6 +1,33 @@
 .git
 .github
+.gitignore
+.golangci.yml
+.idea/
+.vscode/
+
+# Documentation
 *.md
 LICENSE
-.golangci.yml
+
+# Helm chart
+chart/
+
+# Configuration examples and local files
 config.example.yaml
+config.yaml
+docker-compose.yaml
+.env
+.env.*
+
+# TLS certificates and keys
+*.pem
+*.key
+certs/
+
+# Build artifacts and test output
+coverage.out
+*.test
+
+# Release Please
+release-please-config.json
+.release-please-manifest.json
