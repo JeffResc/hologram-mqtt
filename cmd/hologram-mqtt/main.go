@@ -89,8 +89,9 @@ func main() {
 	}
 
 	if err := b.Run(ctx); err != nil {
+		mc.Disconnect()
 		logger.Error("bridge error", "error", err)
-		os.Exit(1)
+		return
 	}
 
 	mc.Disconnect()
