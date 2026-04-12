@@ -45,6 +45,13 @@ func WithHTTPClient(doer HTTPDoer) Option {
 	}
 }
 
+// WithBackoffs overrides the retry backoff durations (useful for testing).
+func WithBackoffs(backoffs []time.Duration) Option {
+	return func(c *httpClient) {
+		c.backoffs = backoffs
+	}
+}
+
 // WithOrgID sets the organization ID to filter API requests.
 func WithOrgID(orgID int) Option {
 	return func(c *httpClient) {
@@ -53,20 +60,22 @@ func WithOrgID(orgID int) Option {
 }
 
 type httpClient struct {
-	baseURL string
-	apiKey  string
-	orgID   int
-	http    HTTPDoer
-	logger  *slog.Logger
+	baseURL  string
+	apiKey   string
+	orgID    int
+	http     HTTPDoer
+	logger   *slog.Logger
+	backoffs []time.Duration
 }
 
 // NewClient creates a new Hologram API client.
 func NewClient(apiKey string, logger *slog.Logger, opts ...Option) Client {
 	c := &httpClient{
-		baseURL: defaultBaseURL,
-		apiKey:  apiKey,
-		http:    &http.Client{Timeout: 30 * time.Second},
-		logger:  logger,
+		baseURL:  defaultBaseURL,
+		apiKey:   apiKey,
+		http:     &http.Client{Timeout: 30 * time.Second},
+		logger:   logger,
+		backoffs: []time.Duration{5 * time.Second, 10 * time.Second, 20 * time.Second},
 	}
 	for _, opt := range opts {
 		opt(c)
@@ -147,9 +156,7 @@ func (c *httpClient) SetDeviceState(ctx context.Context, orgID, deviceID int, st
 
 // doWithRetry performs an HTTP request with retry on 429 status codes.
 func (c *httpClient) doWithRetry(ctx context.Context, method, url, body string) ([]byte, error) {
-	backoffs := []time.Duration{5 * time.Second, 10 * time.Second, 20 * time.Second}
-
-	for attempt := 0; attempt <= len(backoffs); attempt++ {
+	for attempt := 0; attempt <= len(c.backoffs); attempt++ {
 		var bodyReader io.Reader
 		if body != "" {
 			bodyReader = strings.NewReader(body)
@@ -177,8 +184,8 @@ func (c *httpClient) doWithRetry(ctx context.Context, method, url, body string) 
 		}
 
 		if resp.StatusCode == http.StatusTooManyRequests {
-			if attempt < len(backoffs) {
-				wait := backoffs[attempt]
+			if attempt < len(c.backoffs) {
+				wait := c.backoffs[attempt]
 				c.logger.Warn("rate limited, retrying", "attempt", attempt+1, "wait", wait)
 				select {
 				case <-time.After(wait):
@@ -187,7 +194,7 @@ func (c *httpClient) doWithRetry(ctx context.Context, method, url, body string) 
 					return nil, ctx.Err()
 				}
 			}
-			return nil, fmt.Errorf("rate limited after %d retries", len(backoffs))
+			return nil, fmt.Errorf("rate limited after %d retries", len(c.backoffs))
 		}
 
 		if resp.StatusCode < 200 || resp.StatusCode >= 300 {
