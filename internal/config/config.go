@@ -170,6 +170,8 @@ func applyEnv(cfg *Config) error {
 			cfg.PollInterval = d
 		} else if secs, err := strconv.Atoi(v); err == nil {
 			cfg.PollInterval = time.Duration(secs) * time.Second
+		} else {
+			return fmt.Errorf("invalid POLL_INTERVAL %q: must be a Go duration (e.g. 5m) or integer seconds", v)
 		}
 	}
 	if v := os.Getenv("LOG_LEVEL"); v != "" {
