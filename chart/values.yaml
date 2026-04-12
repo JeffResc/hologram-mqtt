@@ -62,6 +62,9 @@ serviceAccount:
   annotations: {}
   name: ""
 
+# Prometheus metrics are exposed at /metrics on the health port.
+# To scrape metrics, create a ServiceMonitor or PodMonitor CR
+# targeting this service, or add prometheus.io/* annotations here.
 podAnnotations: {}
 podLabels: {}
 

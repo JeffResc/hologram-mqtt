@@ -11,6 +11,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/prometheus/client_golang/prometheus"
+
 	"github.com/jeffresc/hologram-mqtt/internal/config"
 	"github.com/jeffresc/hologram-mqtt/internal/discovery"
 	"github.com/jeffresc/hologram-mqtt/internal/hologram"
@@ -94,8 +96,12 @@ func (b *Bridge) Healthy() bool {
 }
 
 func (b *Bridge) poll(ctx context.Context) error {
+	timer := prometheus.NewTimer(pollDuration)
+	defer timer.ObserveDuration()
+
 	devices, err := b.hologram.ListDevices(ctx)
 	if err != nil {
+		pollsTotal.WithLabelValues("error").Inc()
 		return fmt.Errorf("fetching devices: %w", err)
 	}
 
@@ -152,6 +158,9 @@ func (b *Bridge) poll(ctx context.Context) error {
 	b.knownDevices = newKnown
 	b.lastSuccessfulPoll = time.Now()
 
+	pollsTotal.WithLabelValues("success").Inc()
+	devicesTotal.Set(float64(len(devices)))
+
 	b.logger.Info("poll complete", "devices", len(devices), "new", newCount, "removed", removedCount)
 	return nil
 }
@@ -190,6 +199,8 @@ func (b *Bridge) handleCommand(topic string, payload []byte) {
 		b.logger.Error("invalid command payload", "payload", command)
 		return
 	}
+
+	commandsTotal.WithLabelValues(state).Inc()
 
 	b.mu.RLock()
 	device, ok := b.knownDevices[deviceID]
