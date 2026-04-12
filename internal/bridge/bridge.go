@@ -27,6 +27,7 @@ type Bridge struct {
 	discovery    *discovery.Publisher
 	config       *config.Config
 	ctx                context.Context
+	wg                 sync.WaitGroup
 	mu                 sync.RWMutex
 	knownDevices       map[int]hologram.Device
 	lastSuccessfulPoll time.Time
@@ -68,7 +69,8 @@ func (b *Bridge) Run(ctx context.Context) error {
 	for {
 		select {
 		case <-ctx.Done():
-			b.logger.Info("shutting down bridge")
+			b.logger.Info("shutting down bridge, waiting for in-flight commands")
+			b.wg.Wait()
 			return nil
 		case <-ticker.C:
 			if err := b.poll(ctx); err != nil {
@@ -166,6 +168,9 @@ func (b *Bridge) poll(ctx context.Context) error {
 }
 
 func (b *Bridge) handleCommand(topic string, payload []byte) {
+	b.wg.Add(1)
+	defer b.wg.Done()
+
 	// Topic format: <prefix>/device/<id>/switch/set
 	parts := strings.Split(topic, "/")
 	if len(parts) < 5 {
