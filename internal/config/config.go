@@ -138,7 +138,7 @@ func parsePollInterval(cfg *Config) error {
 	// try to parse the non-standard format as a time.Duration.
 	if secs, err := strconv.Atoi(v); err == nil {
 		cfg.PollInterval = time.Duration(secs) * time.Second
-		os.Unsetenv("POLL_INTERVAL")
+		_ = os.Unsetenv("POLL_INTERVAL")
 		return nil
 	}
 
