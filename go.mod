@@ -10,6 +10,7 @@ require (
 	github.com/stretchr/testify v1.11.1
 	github.com/testcontainers/testcontainers-go v0.42.0
 	go.uber.org/automaxprocs v1.6.0
+	go.uber.org/goleak v1.3.0
 	gopkg.in/yaml.v3 v3.0.1
 )
 
