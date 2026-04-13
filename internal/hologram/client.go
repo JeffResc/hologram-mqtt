@@ -81,18 +81,12 @@ func NewClient(apiKey string, logger *slog.Logger, opts ...Option) Client {
 	return c
 }
 
-// rateLimitRetryPolicy retries only on 429 Too Many Requests.
+// rateLimitRetryPolicy extends the default retry policy to also retry on 429 Too Many Requests.
 func rateLimitRetryPolicy(ctx context.Context, resp *http.Response, err error) (bool, error) {
-	if ctx.Err() != nil {
-		return false, ctx.Err()
-	}
-	if err != nil {
-		return false, err
-	}
-	if resp.StatusCode == http.StatusTooManyRequests {
+	if resp != nil && resp.StatusCode == http.StatusTooManyRequests {
 		return true, nil
 	}
-	return false, nil
+	return retryablehttp.DefaultRetryPolicy(ctx, resp, err)
 }
 
 // ListDevices fetches all devices, handling pagination automatically.
