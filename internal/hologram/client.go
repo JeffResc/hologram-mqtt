@@ -145,10 +145,14 @@ func (c *httpClient) SetDeviceState(ctx context.Context, orgID, deviceID int, st
 		return fmt.Errorf("invalid state %q: must be \"pause\" or \"live\"", state)
 	}
 
-	body := fmt.Sprintf(`{"state":%q,"deviceids":[%d],"orgid":%d}`, state, deviceID, orgID)
+	reqBody := BatchStateRequest{State: state, DeviceIDs: []int{deviceID}, OrgID: orgID}
+	bodyBytes, err := json.Marshal(reqBody)
+	if err != nil {
+		return fmt.Errorf("encoding state request: %w", err)
+	}
 	url := c.baseURL + "/devices/batch/state"
 
-	respBody, err := c.doRequest(ctx, http.MethodPost, url, body)
+	respBody, err := c.doRequest(ctx, http.MethodPost, url, string(bodyBytes))
 	if err != nil {
 		return fmt.Errorf("setting device state: %w", err)
 	}
