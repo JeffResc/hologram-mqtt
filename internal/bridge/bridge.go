@@ -139,18 +139,18 @@ func (b *Bridge) poll(ctx context.Context) error {
 		}
 	}
 
-	// Detect new devices and publish discovery
-	if b.config.Discovery.Enabled {
-		var newDevices []hologram.Device
-		for _, d := range devices {
-			if _, exists := b.knownDevices[d.ID]; !exists {
-				newDevices = append(newDevices, d)
-			}
+	// Detect new devices
+	var newDevices []hologram.Device
+	for _, d := range devices {
+		if _, exists := b.knownDevices[d.ID]; !exists {
+			newDevices = append(newDevices, d)
 		}
-		if len(newDevices) > 0 {
-			if err := b.discovery.PublishDiscovery(newDevices); err != nil {
-				b.logger.Error("failed to publish discovery for new devices", "error", err)
-			}
+	}
+
+	// Publish discovery for new devices
+	if b.config.Discovery.Enabled && len(newDevices) > 0 {
+		if err := b.discovery.PublishDiscovery(newDevices); err != nil {
+			b.logger.Error("failed to publish discovery for new devices", "error", err)
 		}
 	}
 
@@ -166,7 +166,7 @@ func (b *Bridge) poll(ctx context.Context) error {
 	}
 
 	removedCount := len(removed)
-	newCount := len(devices) - (len(b.knownDevices) - removedCount)
+	newCount := len(newDevices)
 	b.knownDevices = newKnown
 	b.lastSuccessfulPoll = time.Now()
 
