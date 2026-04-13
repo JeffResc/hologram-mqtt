@@ -108,7 +108,7 @@ func (c *httpClient) ListDevices(ctx context.Context) ([]Device, error) {
 			return nil, fmt.Errorf("listing devices: %w", err)
 		}
 
-		c.logger.Debug("raw API response", "body", string(resp))
+		c.logger.Debug("API response received", "bytes", len(resp))
 
 		var listResp DeviceListResponse
 		if err := json.Unmarshal(resp, &listResp); err != nil {
