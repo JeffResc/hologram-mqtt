@@ -189,7 +189,7 @@ func (c *httpClient) doRequest(ctx context.Context, method, url, body string) ([
 	}
 	defer func() { _ = resp.Body.Close() }()
 
-	respBody, err := io.ReadAll(resp.Body)
+	respBody, err := io.ReadAll(io.LimitReader(resp.Body, 10<<20)) // 10 MB max
 	if err != nil {
 		return nil, fmt.Errorf("reading response body: %w", err)
 	}
