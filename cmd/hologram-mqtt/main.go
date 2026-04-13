@@ -70,7 +70,7 @@ func main() {
 	if cfg.Health.Enabled {
 		mux := http.NewServeMux()
 		mux.HandleFunc("/healthz", b.HealthHandler())
-		mux.Handle("/metrics", promhttp.Handler())
+		mux.Handle("/metrics", promhttp.HandlerFor(b.Registry(), promhttp.HandlerOpts{}))
 		healthServer := &http.Server{
 			Addr:              cfg.Health.Addr,
 			Handler:           mux,
