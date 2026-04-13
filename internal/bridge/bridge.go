@@ -35,6 +35,8 @@ type Bridge struct {
 	mqtt         mqtt.Publisher
 	discovery    *discovery.Publisher
 	config       *config.Config
+	registry           *prometheus.Registry
+	metrics            *metrics
 	wg                 sync.WaitGroup
 	mu                 sync.RWMutex
 	knownDevices       map[int]hologram.Device
@@ -46,15 +48,23 @@ type Bridge struct {
 // New creates a new Bridge instance.
 func New(cfg *config.Config, hc hologram.Client, mc mqtt.Publisher, logger *slog.Logger) *Bridge {
 	dp := discovery.NewPublisher(mc, cfg.MQTT.TopicPrefix, cfg.Discovery.Prefix, logger)
+	reg := prometheus.NewRegistry()
 	return &Bridge{
 		hologram:     hc,
 		mqtt:         mc,
 		discovery:    dp,
 		config:       cfg,
+		registry:     reg,
+		metrics:      newMetrics(reg),
 		knownDevices: make(map[int]hologram.Device),
 		lastCommands: make(map[int]lastCommandEntry),
 		logger:       logger,
 	}
+}
+
+// Registry returns the Prometheus registry used by this bridge.
+func (b *Bridge) Registry() *prometheus.Registry {
+	return b.registry
 }
 
 // Run starts the bridge loop. It blocks until the context is cancelled.
@@ -105,12 +115,12 @@ func (b *Bridge) Healthy() bool {
 }
 
 func (b *Bridge) poll(ctx context.Context) error {
-	timer := prometheus.NewTimer(pollDuration)
+	timer := prometheus.NewTimer(b.metrics.pollDuration)
 	defer timer.ObserveDuration()
 
 	devices, err := b.hologram.ListDevices(ctx)
 	if err != nil {
-		pollsTotal.WithLabelValues("error").Inc()
+		b.metrics.pollsTotal.WithLabelValues("error").Inc()
 		return fmt.Errorf("fetching devices: %w", err)
 	}
 
@@ -167,8 +177,8 @@ func (b *Bridge) poll(ctx context.Context) error {
 	b.knownDevices = newKnown
 	b.lastSuccessfulPoll = time.Now()
 
-	pollsTotal.WithLabelValues("success").Inc()
-	devicesTotal.Set(float64(len(devices)))
+	b.metrics.pollsTotal.WithLabelValues("success").Inc()
+	b.metrics.devicesTotal.Set(float64(len(devices)))
 
 	b.logger.Info("poll complete", "devices", len(devices), "new", newCount, "removed", removedCount)
 	return nil
@@ -212,7 +222,7 @@ func (b *Bridge) handleCommand(topic string, payload []byte) {
 		return
 	}
 
-	commandsTotal.WithLabelValues(state).Inc()
+	b.metrics.commandsTotal.WithLabelValues(state).Inc()
 
 	// Atomically check debounce and claim the command slot under a single lock
 	// to prevent duplicate API calls from concurrent identical commands.
