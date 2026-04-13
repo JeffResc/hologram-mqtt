@@ -217,20 +217,25 @@ func (b *Bridge) handleCommand(topic string, payload []byte) {
 
 	commandsTotal.WithLabelValues(state).Inc()
 
-	b.mu.RLock()
+	// Atomically check debounce and claim the command slot under a single lock
+	// to prevent duplicate API calls from concurrent identical commands.
+	b.mu.Lock()
 	device, ok := b.knownDevices[deviceID]
-	last, hasLast := b.lastCommands[deviceID]
-	b.mu.RUnlock()
-
 	if !ok {
+		b.mu.Unlock()
 		b.logger.Error("unknown device in command", "device_id", deviceID)
 		return
 	}
 
+	last, hasLast := b.lastCommands[deviceID]
 	if hasLast && last.state == state && time.Since(last.at) < commandDebounceWindow {
+		b.mu.Unlock()
 		b.logger.Debug("debounced duplicate command", "device_id", deviceID, "state", state)
 		return
 	}
+
+	b.lastCommands[deviceID] = lastCommandEntry{state: state, at: time.Now()}
+	b.mu.Unlock()
 
 	b.logger.Info("executing command", "device_id", deviceID, "device_name", device.Name, "state", state)
 
@@ -244,7 +249,6 @@ func (b *Bridge) handleCommand(topic string, payload []byte) {
 	device = b.knownDevices[deviceID]
 	updated := copyDeviceWithState(device, state)
 	b.knownDevices[deviceID] = updated
-	b.lastCommands[deviceID] = lastCommandEntry{state: state, at: time.Now()}
 	b.mu.Unlock()
 
 	if err := b.discovery.PublishStates([]hologram.Device{updated}); err != nil {
