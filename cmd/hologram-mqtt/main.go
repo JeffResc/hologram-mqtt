@@ -71,7 +71,13 @@ func main() {
 		mux := http.NewServeMux()
 		mux.HandleFunc("/healthz", b.HealthHandler())
 		mux.Handle("/metrics", promhttp.Handler())
-		healthServer := &http.Server{Addr: cfg.Health.Addr, Handler: mux}
+		healthServer := &http.Server{
+			Addr:              cfg.Health.Addr,
+			Handler:           mux,
+			ReadHeaderTimeout: 5 * time.Second,
+			ReadTimeout:       10 * time.Second,
+			WriteTimeout:      10 * time.Second,
+		}
 
 		go func() {
 			logger.Info("starting health check server", "addr", cfg.Health.Addr)
