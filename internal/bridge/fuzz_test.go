@@ -31,7 +31,6 @@ func fuzzBridge() *Bridge {
 	}
 
 	b := New(cfg, mockHolo, mockMQTT, slog.New(slog.NewTextHandler(io.Discard, nil)))
-	b.ctx = context.Background()
 
 	// Seed a known device so some command paths are exercised
 	b.knownDevices[42] = hologram.Device{

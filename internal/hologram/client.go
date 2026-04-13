@@ -81,18 +81,12 @@ func NewClient(apiKey string, logger *slog.Logger, opts ...Option) Client {
 	return c
 }
 
-// rateLimitRetryPolicy retries only on 429 Too Many Requests.
+// rateLimitRetryPolicy extends the default retry policy to also retry on 429 Too Many Requests.
 func rateLimitRetryPolicy(ctx context.Context, resp *http.Response, err error) (bool, error) {
-	if ctx.Err() != nil {
-		return false, ctx.Err()
-	}
-	if err != nil {
-		return false, err
-	}
-	if resp.StatusCode == http.StatusTooManyRequests {
+	if resp != nil && resp.StatusCode == http.StatusTooManyRequests {
 		return true, nil
 	}
-	return false, nil
+	return retryablehttp.DefaultRetryPolicy(ctx, resp, err)
 }
 
 // ListDevices fetches all devices, handling pagination automatically.
@@ -114,7 +108,7 @@ func (c *httpClient) ListDevices(ctx context.Context) ([]Device, error) {
 			return nil, fmt.Errorf("listing devices: %w", err)
 		}
 
-		c.logger.Debug("raw API response", "body", string(resp))
+		c.logger.Debug("API response received", "bytes", len(resp))
 
 		var listResp DeviceListResponse
 		if err := json.Unmarshal(resp, &listResp); err != nil {
@@ -145,10 +139,14 @@ func (c *httpClient) SetDeviceState(ctx context.Context, orgID, deviceID int, st
 		return fmt.Errorf("invalid state %q: must be \"pause\" or \"live\"", state)
 	}
 
-	body := fmt.Sprintf(`{"state":%q,"deviceids":[%d],"orgid":%d}`, state, deviceID, orgID)
+	reqBody := BatchStateRequest{State: state, DeviceIDs: []int{deviceID}, OrgID: orgID}
+	bodyBytes, err := json.Marshal(reqBody)
+	if err != nil {
+		return fmt.Errorf("encoding state request: %w", err)
+	}
 	url := c.baseURL + "/devices/batch/state"
 
-	respBody, err := c.doRequest(ctx, http.MethodPost, url, body)
+	respBody, err := c.doRequest(ctx, http.MethodPost, url, string(bodyBytes))
 	if err != nil {
 		return fmt.Errorf("setting device state: %w", err)
 	}
@@ -189,7 +187,7 @@ func (c *httpClient) doRequest(ctx context.Context, method, url, body string) ([
 	}
 	defer func() { _ = resp.Body.Close() }()
 
-	respBody, err := io.ReadAll(resp.Body)
+	respBody, err := io.ReadAll(io.LimitReader(resp.Body, 10<<20)) // 10 MB max
 	if err != nil {
 		return nil, fmt.Errorf("reading response body: %w", err)
 	}

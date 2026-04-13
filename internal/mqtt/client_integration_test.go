@@ -121,7 +121,7 @@ func TestIntegrationPublishSubscribeRoundTrip(t *testing.T) {
 		mu.Lock()
 		defer mu.Unlock()
 		return len(received) == 3
-	}, 5*time.Second, 100*time.Millisecond, "expected 3 messages, got %d", len(received))
+	}, 5*time.Second, 100*time.Millisecond, "expected 3 messages")
 }
 
 func TestIntegrationRetainedMessage(t *testing.T) {

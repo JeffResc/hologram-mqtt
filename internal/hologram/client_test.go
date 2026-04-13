@@ -244,7 +244,9 @@ func TestSetDeviceStateSuccessFalse(t *testing.T) {
 }
 
 func TestSetDeviceStateServerError(t *testing.T) {
+	var attempts int
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		attempts++
 		w.WriteHeader(http.StatusInternalServerError)
 		_, _ = w.Write([]byte("internal server error"))
 	}))
@@ -254,9 +256,8 @@ func TestSetDeviceStateServerError(t *testing.T) {
 	err := client.SetDeviceState(context.Background(), 10, 42, "pause")
 	require.Error(t, err)
 
-	var apiErr *APIError
-	require.ErrorAs(t, err, &apiErr)
-	assert.Equal(t, http.StatusInternalServerError, apiErr.StatusCode)
+	// 500s are retried by the default retry policy, so multiple attempts are expected
+	assert.Greater(t, attempts, 1, "should have retried on 500")
 }
 
 func TestAPIErrorString(t *testing.T) {

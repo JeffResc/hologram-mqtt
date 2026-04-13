@@ -35,7 +35,8 @@ type Bridge struct {
 	mqtt         mqtt.Publisher
 	discovery    *discovery.Publisher
 	config       *config.Config
-	ctx                context.Context
+	registry           *prometheus.Registry
+	metrics            *metrics
 	wg                 sync.WaitGroup
 	mu                 sync.RWMutex
 	knownDevices       map[int]hologram.Device
@@ -47,21 +48,27 @@ type Bridge struct {
 // New creates a new Bridge instance.
 func New(cfg *config.Config, hc hologram.Client, mc mqtt.Publisher, logger *slog.Logger) *Bridge {
 	dp := discovery.NewPublisher(mc, cfg.MQTT.TopicPrefix, cfg.Discovery.Prefix, logger)
+	reg := prometheus.NewRegistry()
 	return &Bridge{
 		hologram:     hc,
 		mqtt:         mc,
 		discovery:    dp,
 		config:       cfg,
+		registry:     reg,
+		metrics:      newMetrics(reg),
 		knownDevices: make(map[int]hologram.Device),
 		lastCommands: make(map[int]lastCommandEntry),
 		logger:       logger,
 	}
 }
 
+// Registry returns the Prometheus registry used by this bridge.
+func (b *Bridge) Registry() *prometheus.Registry {
+	return b.registry
+}
+
 // Run starts the bridge loop. It blocks until the context is cancelled.
 func (b *Bridge) Run(ctx context.Context) error {
-	b.ctx = ctx
-
 	// Subscribe to switch command topics
 	commandTopic := b.config.MQTT.TopicPrefix + "/device/+/switch/set"
 	if err := b.mqtt.Subscribe(commandTopic, 1, b.handleCommand); err != nil {
@@ -108,12 +115,12 @@ func (b *Bridge) Healthy() bool {
 }
 
 func (b *Bridge) poll(ctx context.Context) error {
-	timer := prometheus.NewTimer(pollDuration)
+	timer := prometheus.NewTimer(b.metrics.pollDuration)
 	defer timer.ObserveDuration()
 
 	devices, err := b.hologram.ListDevices(ctx)
 	if err != nil {
-		pollsTotal.WithLabelValues("error").Inc()
+		b.metrics.pollsTotal.WithLabelValues("error").Inc()
 		return fmt.Errorf("fetching devices: %w", err)
 	}
 
@@ -139,18 +146,18 @@ func (b *Bridge) poll(ctx context.Context) error {
 		}
 	}
 
-	// Detect new devices and publish discovery
-	if b.config.Discovery.Enabled {
-		var newDevices []hologram.Device
-		for _, d := range devices {
-			if _, exists := b.knownDevices[d.ID]; !exists {
-				newDevices = append(newDevices, d)
-			}
+	// Detect new devices
+	var newDevices []hologram.Device
+	for _, d := range devices {
+		if _, exists := b.knownDevices[d.ID]; !exists {
+			newDevices = append(newDevices, d)
 		}
-		if len(newDevices) > 0 {
-			if err := b.discovery.PublishDiscovery(newDevices); err != nil {
-				b.logger.Error("failed to publish discovery for new devices", "error", err)
-			}
+	}
+
+	// Publish discovery for new devices
+	if b.config.Discovery.Enabled && len(newDevices) > 0 {
+		if err := b.discovery.PublishDiscovery(newDevices); err != nil {
+			b.logger.Error("failed to publish discovery for new devices", "error", err)
 		}
 	}
 
@@ -166,12 +173,12 @@ func (b *Bridge) poll(ctx context.Context) error {
 	}
 
 	removedCount := len(removed)
-	newCount := len(devices) - (len(b.knownDevices) - removedCount)
+	newCount := len(newDevices)
 	b.knownDevices = newKnown
 	b.lastSuccessfulPoll = time.Now()
 
-	pollsTotal.WithLabelValues("success").Inc()
-	devicesTotal.Set(float64(len(devices)))
+	b.metrics.pollsTotal.WithLabelValues("success").Inc()
+	b.metrics.devicesTotal.Set(float64(len(devices)))
 
 	b.logger.Info("poll complete", "devices", len(devices), "new", newCount, "removed", removedCount)
 	return nil
@@ -215,26 +222,34 @@ func (b *Bridge) handleCommand(topic string, payload []byte) {
 		return
 	}
 
-	commandsTotal.WithLabelValues(state).Inc()
+	b.metrics.commandsTotal.WithLabelValues(state).Inc()
 
-	b.mu.RLock()
+	// Atomically check debounce and claim the command slot under a single lock
+	// to prevent duplicate API calls from concurrent identical commands.
+	b.mu.Lock()
 	device, ok := b.knownDevices[deviceID]
-	last, hasLast := b.lastCommands[deviceID]
-	b.mu.RUnlock()
-
 	if !ok {
+		b.mu.Unlock()
 		b.logger.Error("unknown device in command", "device_id", deviceID)
 		return
 	}
 
+	last, hasLast := b.lastCommands[deviceID]
 	if hasLast && last.state == state && time.Since(last.at) < commandDebounceWindow {
+		b.mu.Unlock()
 		b.logger.Debug("debounced duplicate command", "device_id", deviceID, "state", state)
 		return
 	}
 
+	b.lastCommands[deviceID] = lastCommandEntry{state: state, at: time.Now()}
+	b.mu.Unlock()
+
 	b.logger.Info("executing command", "device_id", deviceID, "device_name", device.Name, "state", state)
 
-	if err := b.hologram.SetDeviceState(b.ctx, device.OrgID, deviceID, state); err != nil {
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	if err := b.hologram.SetDeviceState(ctx, device.OrgID, deviceID, state); err != nil {
 		b.logger.Error("failed to set device state", "device_id", deviceID, "error", err)
 		return
 	}
@@ -244,7 +259,6 @@ func (b *Bridge) handleCommand(topic string, payload []byte) {
 	device = b.knownDevices[deviceID]
 	updated := copyDeviceWithState(device, state)
 	b.knownDevices[deviceID] = updated
-	b.lastCommands[deviceID] = lastCommandEntry{state: state, at: time.Now()}
 	b.mu.Unlock()
 
 	if err := b.discovery.PublishStates([]hologram.Device{updated}); err != nil {
