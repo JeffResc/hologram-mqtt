@@ -109,18 +109,20 @@ func TestIntegrationBridgePollAndPublish(t *testing.T) {
 
 	// Create the bridge MQTT client
 	bridgeClient, err := mqtt.NewClient(mqtt.ClientConfig{
-		Broker:      broker,
-		ClientID:    "bridge",
-		TopicPrefix: "hologram",
+		Broker:       broker,
+		ClientID:     "bridge",
+		TopicPrefix:  "hologram",
+		CleanSession: true,
 	}, testLogger())
 	require.NoError(t, err)
 	defer bridgeClient.Disconnect()
 
 	// Create a separate observer client to verify published messages
 	observer, err := mqtt.NewClient(mqtt.ClientConfig{
-		Broker:      broker,
-		ClientID:    "observer",
-		TopicPrefix: "observer",
+		Broker:       broker,
+		ClientID:     "observer",
+		TopicPrefix:  "observer",
+		CleanSession: true,
 	}, testLogger())
 	require.NoError(t, err)
 	defer observer.Disconnect()
@@ -187,18 +189,20 @@ func TestIntegrationBridgeCommandRoundTrip(t *testing.T) {
 
 	// Create the bridge MQTT client
 	bridgeClient, err := mqtt.NewClient(mqtt.ClientConfig{
-		Broker:      broker,
-		ClientID:    "bridge-cmd",
-		TopicPrefix: "hologram",
+		Broker:       broker,
+		ClientID:     "bridge-cmd",
+		TopicPrefix:  "hologram",
+		CleanSession: true,
 	}, testLogger())
 	require.NoError(t, err)
 	defer bridgeClient.Disconnect()
 
 	// Create a commander client to send commands and observe responses
 	commander, err := mqtt.NewClient(mqtt.ClientConfig{
-		Broker:      broker,
-		ClientID:    "commander",
-		TopicPrefix: "commander",
+		Broker:       broker,
+		ClientID:     "commander",
+		TopicPrefix:  "commander",
+		CleanSession: true,
 	}, testLogger())
 	require.NoError(t, err)
 	defer commander.Disconnect()

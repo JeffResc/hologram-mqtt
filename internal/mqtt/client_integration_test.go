@@ -65,9 +65,10 @@ func TestIntegrationConnectDisconnect(t *testing.T) {
 	defer cleanup()
 
 	client, err := mqtt.NewClient(mqtt.ClientConfig{
-		Broker:      broker,
-		ClientID:    "test-connect",
-		TopicPrefix: "test",
+		Broker:       broker,
+		ClientID:     "test-connect",
+		TopicPrefix:  "test",
+		CleanSession: true,
 	}, testLogger())
 	require.NoError(t, err)
 
@@ -81,18 +82,20 @@ func TestIntegrationPublishSubscribeRoundTrip(t *testing.T) {
 
 	// Create publisher
 	pub, err := mqtt.NewClient(mqtt.ClientConfig{
-		Broker:      broker,
-		ClientID:    "test-pub",
-		TopicPrefix: "test",
+		Broker:       broker,
+		ClientID:     "test-pub",
+		TopicPrefix:  "test",
+		CleanSession: true,
 	}, testLogger())
 	require.NoError(t, err)
 	defer pub.Disconnect()
 
 	// Create subscriber
 	sub, err := mqtt.NewClient(mqtt.ClientConfig{
-		Broker:      broker,
-		ClientID:    "test-sub",
-		TopicPrefix: "test",
+		Broker:       broker,
+		ClientID:     "test-sub",
+		TopicPrefix:  "test",
+		CleanSession: true,
 	}, testLogger())
 	require.NoError(t, err)
 	defer sub.Disconnect()
@@ -130,9 +133,10 @@ func TestIntegrationRetainedMessage(t *testing.T) {
 
 	// Publish a retained message
 	pub, err := mqtt.NewClient(mqtt.ClientConfig{
-		Broker:      broker,
-		ClientID:    "test-retain-pub",
-		TopicPrefix: "test",
+		Broker:       broker,
+		ClientID:     "test-retain-pub",
+		TopicPrefix:  "test",
+		CleanSession: true,
 	}, testLogger())
 	require.NoError(t, err)
 
@@ -142,9 +146,10 @@ func TestIntegrationRetainedMessage(t *testing.T) {
 
 	// New subscriber should receive the retained message
 	sub, err := mqtt.NewClient(mqtt.ClientConfig{
-		Broker:      broker,
-		ClientID:    "test-retain-sub",
-		TopicPrefix: "test",
+		Broker:       broker,
+		ClientID:     "test-retain-sub",
+		TopicPrefix:  "test",
+		CleanSession: true,
 	}, testLogger())
 	require.NoError(t, err)
 	defer sub.Disconnect()

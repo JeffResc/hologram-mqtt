@@ -27,12 +27,13 @@ type MessageHandler func(topic string, payload []byte)
 
 // ClientConfig holds MQTT connection parameters.
 type ClientConfig struct {
-	Broker      string
-	Username    string
-	Password    string
-	ClientID    string
-	TopicPrefix string
-	TLS         TLSConfig
+	Broker       string
+	Username     string
+	Password     string
+	ClientID     string
+	TopicPrefix  string
+	CleanSession bool
+	TLS          TLSConfig
 }
 
 // TLSConfig holds TLS settings for the MQTT connection.
@@ -69,7 +70,7 @@ func NewClient(cfg ClientConfig, logger *slog.Logger) (Publisher, error) {
 		SetConnectRetry(true).
 		SetConnectRetryInterval(5 * time.Second).
 		SetMaxReconnectInterval(2 * time.Minute).
-		SetCleanSession(false).
+		SetCleanSession(cfg.CleanSession).
 		SetOrderMatters(false).
 		SetWill(cfg.TopicPrefix+"/status", "offline", 1, true).
 		SetOnConnectHandler(c.onConnect).
