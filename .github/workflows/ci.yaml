@@ -78,7 +78,7 @@ jobs:
         uses: azure/setup-helm@dda3372f752e03dde6b3237bc9431cdc2f7a02a2 # v5
 
       - name: Install helm-unittest
-        run: helm plugin install https://github.com/helm-unittest/helm-unittest.git --verify=false
+        run: helm plugin install https://github.com/helm-unittest/helm-unittest.git --version v0.7.2
 
       - name: Run Helm unit tests
         run: helm unittest chart/
