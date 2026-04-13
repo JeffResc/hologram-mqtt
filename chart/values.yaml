@@ -106,6 +106,13 @@ readinessProbe:
   initialDelaySeconds: 5
   periodSeconds: 10
 
+startupProbe:
+  httpGet:
+    path: /healthz
+    port: health
+  failureThreshold: 30
+  periodSeconds: 2
+
 podDisruptionBudget:
   enabled: false
   # minAvailable: 1
