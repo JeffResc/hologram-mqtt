@@ -48,7 +48,7 @@ type client struct {
 	paho                 pahomqtt.Client
 	topicPrefix          string
 	logger               *slog.Logger
-	mu                   sync.Mutex
+	mu                   sync.RWMutex
 	subscriptions        map[string]pahomqtt.MessageHandler
 	subscriptionsHealthy bool
 }
@@ -139,12 +139,12 @@ func (c *client) onConnect(_ pahomqtt.Client) {
 	token.Wait()
 
 	// Re-subscribe to all topics
-	c.mu.Lock()
+	c.mu.RLock()
 	subs := make(map[string]pahomqtt.MessageHandler, len(c.subscriptions))
 	for topic, handler := range c.subscriptions {
 		subs[topic] = handler
 	}
-	c.mu.Unlock()
+	c.mu.RUnlock()
 
 	healthy := true
 	for topic, handler := range subs {
@@ -199,8 +199,8 @@ func (c *client) IsConnected() bool {
 // SubscriptionsHealthy returns whether all topic subscriptions are active.
 // Returns false if any re-subscription failed after a reconnect.
 func (c *client) SubscriptionsHealthy() bool {
-	c.mu.Lock()
-	defer c.mu.Unlock()
+	c.mu.RLock()
+	defer c.mu.RUnlock()
 	return c.subscriptionsHealthy
 }
 
