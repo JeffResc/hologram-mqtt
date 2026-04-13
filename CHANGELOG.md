@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.2.1](https://github.com/JeffResc/hologram-mqtt/compare/hologram-mqtt-v1.2.0...hologram-mqtt-v1.2.1) (2026-04-13)
+
+
+### Bug Fixes
+
+* data race in paho MQTT client during integration tests ([850b1dd](https://github.com/JeffResc/hologram-mqtt/commit/850b1dd5e4f0b336526d74b28947ad667c1a5fbe))
+* data race in paho MQTT client during integration tests ([370bcd6](https://github.com/JeffResc/hologram-mqtt/commit/370bcd6bd336fec8f6ed599fe9a9c5870bfd1648))
+
 ## [1.2.0](https://github.com/JeffResc/hologram-mqtt/compare/hologram-mqtt-v1.1.2...hologram-mqtt-v1.2.0) (2026-04-13)
 
 
