@@ -136,7 +136,9 @@ func (c *client) onConnect(_ pahomqtt.Client) {
 
 	// Publish birth message
 	token := c.paho.Publish(c.topicPrefix+"/status", 1, true, "online")
-	token.Wait()
+	if !token.WaitTimeout(10 * time.Second) {
+		c.logger.Error("birth message publish timed out")
+	}
 
 	// Re-subscribe to all topics
 	c.mu.Lock()
@@ -149,8 +151,10 @@ func (c *client) onConnect(_ pahomqtt.Client) {
 	healthy := true
 	for topic, handler := range subs {
 		token := c.paho.Subscribe(topic, 1, handler)
-		token.Wait()
-		if token.Error() != nil {
+		if !token.WaitTimeout(10 * time.Second) {
+			c.logger.Error("re-subscribe timed out", "topic", topic)
+			healthy = false
+		} else if token.Error() != nil {
 			c.logger.Error("failed to re-subscribe", "topic", topic, "error", token.Error())
 			healthy = false
 		}
