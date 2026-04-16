@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.2.2](https://github.com/JeffResc/hologram-mqtt/compare/hologram-mqtt-v1.2.1...hologram-mqtt-v1.2.2) (2026-04-16)
+
+
+### Miscellaneous
+
+* **deps:** update golang:1.26-alpine docker digest to 27f8293 ([fd68d0e](https://github.com/JeffResc/hologram-mqtt/commit/fd68d0eb6e90c136ee817184a7e304ad4b0ac9f8))
+* **deps:** update golang:1.26-alpine docker digest to 27f8293 ([c185edb](https://github.com/JeffResc/hologram-mqtt/commit/c185edbb26a1ce20eb5c8c81cc0ca2e15b722448))
+* **deps:** update googleapis/release-please-action digest to 5c625bf ([dd2756e](https://github.com/JeffResc/hologram-mqtt/commit/dd2756ecbd857502f69b697275326a208ca0b705))
+
 ## [1.2.1](https://github.com/JeffResc/hologram-mqtt/compare/hologram-mqtt-v1.2.0...hologram-mqtt-v1.2.1) (2026-04-13)
 
 
