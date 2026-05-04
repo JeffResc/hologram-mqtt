@@ -5,7 +5,7 @@ go 1.26
 toolchain go1.26.2
 
 require (
-	github.com/caarlos0/env/v11 v11.4.0
+	github.com/caarlos0/env/v11 v11.4.1
 	github.com/eclipse/paho.mqtt.golang v1.5.1
 	github.com/hashicorp/go-retryablehttp v0.7.8
 	github.com/prometheus/client_golang v1.23.2
