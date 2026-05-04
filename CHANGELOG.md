@@ -1,5 +1,16 @@
 # Changelog
 
+## [1.2.4](https://github.com/JeffResc/hologram-mqtt/compare/hologram-mqtt-v1.2.3...hologram-mqtt-v1.2.4) (2026-05-04)
+
+
+### Miscellaneous
+
+* **deps:** update dependency golangci/golangci-lint to v2.12.1 ([d0cdebe](https://github.com/JeffResc/hologram-mqtt/commit/d0cdebee42728bad094f2cce70a52db5c61ac86b))
+* **deps:** update dependency golangci/golangci-lint to v2.12.1 ([4154021](https://github.com/JeffResc/hologram-mqtt/commit/41540212dbc622e6b1ee1218308ade1549824db1))
+* **deps:** update googleapis/release-please-action action to v5 ([afb38d4](https://github.com/JeffResc/hologram-mqtt/commit/afb38d4029ef83505942eac0892960944a1c4f73))
+* **deps:** update module github.com/caarlos0/env/v11 to v11.4.1 ([d0bbd30](https://github.com/JeffResc/hologram-mqtt/commit/d0bbd3026b1d146607dd683c7bf86e79f5532785))
+* **deps:** update module github.com/caarlos0/env/v11 to v11.4.1 ([f86ff24](https://github.com/JeffResc/hologram-mqtt/commit/f86ff248b2dab8dc40230b5b2e9c3871dc76efc3))
+
 ## [1.2.3](https://github.com/JeffResc/hologram-mqtt/compare/hologram-mqtt-v1.2.2...hologram-mqtt-v1.2.3) (2026-04-17)
 
 
