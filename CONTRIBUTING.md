@@ -23,9 +23,30 @@ golangci-lint run
 ## Branch & PR Conventions
 
 - Branch from `main`
-- Use [Conventional Commits](https://www.conventionalcommits.org/) for commit messages (e.g., `feat:`, `fix:`, `docs:`)
 - Keep PRs focused — one issue per PR when possible
 - Include a brief description of the change and link the related issue
+
+## Commit messages
+
+This project uses [Conventional Commits](https://www.conventionalcommits.org/).
+The commit type drives the next version when releases are cut:
+
+- `feat:` → minor bump (`0.1.0` → `0.2.0`)
+- `fix:` → patch bump (`0.1.0` → `0.1.1`)
+- `feat!:` or a `BREAKING CHANGE:` footer → major bump
+- `chore:`, `docs:`, `refactor:`, `test:`, `ci:` → no version bump, still
+  shown in the changelog
+
+Examples:
+
+```
+feat(bridge): publish session timer state to MQTT
+fix(hologram): retry on 5xx responses
+chore(deps): bump paho.mqtt.golang to v1.5.0
+```
+
+If you squash-merge PRs, write the squash-merge commit in this format —
+that's what release automation reads.
 
 ## Architecture Overview
 
