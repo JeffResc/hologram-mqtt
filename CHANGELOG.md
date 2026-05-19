@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.2.5](https://github.com/JeffResc/hologram-mqtt/compare/hologram-mqtt-v1.2.4...hologram-mqtt-v1.2.5) (2026-05-18)
+
+
+### Miscellaneous
+
+* **deps:** update gcr.io/distroless/static docker digest to 3592aa8 ([7b6f287](https://github.com/JeffResc/hologram-mqtt/commit/7b6f28722c405481f923c24242de78ebbcc50e76))
+* **deps:** update gcr.io/distroless/static docker digest to 3592aa8 ([c87a90e](https://github.com/JeffResc/hologram-mqtt/commit/c87a90e2b26a6c2c824dd2c09e61a66953156c0b))
+* **docs:** update CONTRIBUTING.md ([7e180f9](https://github.com/JeffResc/hologram-mqtt/commit/7e180f9ebcb10d80199d58b0337e14982bb68f06))
+
 ## [1.2.4](https://github.com/JeffResc/hologram-mqtt/compare/hologram-mqtt-v1.2.3...hologram-mqtt-v1.2.4) (2026-05-08)
 
 
