@@ -214,4 +214,4 @@ golangci-lint run
 
 ## License
 
-[Apache 2.0](LICENSE)
+[GPL-3.0](LICENSE)
