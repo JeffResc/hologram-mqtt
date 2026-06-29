@@ -1,5 +1,15 @@
 # Changelog
 
+## [1.2.7](https://github.com/JeffResc/hologram-mqtt/compare/hologram-mqtt-v1.2.6...hologram-mqtt-v1.2.7) (2026-06-29)
+
+
+### Miscellaneous
+
+* **deps:** update actions/setup-go digest to 924ae3a ([ddad05f](https://github.com/JeffResc/hologram-mqtt/commit/ddad05f83136329910bc52a70afeae6db13cb4a4))
+* **deps:** update actions/setup-go digest to 924ae3a ([34302bb](https://github.com/JeffResc/hologram-mqtt/commit/34302bb1656ec62f48c09bf00fd8f021f0fa00c4))
+* **deps:** update azure/setup-helm digest to 9bc31f4 ([dc9b0ac](https://github.com/JeffResc/hologram-mqtt/commit/dc9b0ac0520dab410cb964b379abe8f2fff8488c))
+* **deps:** update azure/setup-helm digest to 9bc31f4 ([55f2e77](https://github.com/JeffResc/hologram-mqtt/commit/55f2e7799af7a186b6d783c4dc7b640048716006))
+
 ## [1.2.6](https://github.com/JeffResc/hologram-mqtt/compare/hologram-mqtt-v1.2.5...hologram-mqtt-v1.2.6) (2026-06-22)
 
 
