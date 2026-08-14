@@ -1,5 +1,41 @@
 # Changelog
 
+## [1.2.7](https://github.com/JeffResc/hologram-mqtt/compare/hologram-mqtt-v1.2.6...hologram-mqtt-v1.2.7) (2026-08-14)
+
+
+### Miscellaneous
+
+* **deps:** update actions/checkout digest to 3d3c42e ([8c7d1a6](https://github.com/JeffResc/hologram-mqtt/commit/8c7d1a6ff2edd15c44f647f0e36d4d323627de6e))
+* **deps:** update actions/checkout digest to 3d3c42e ([ffa0401](https://github.com/JeffResc/hologram-mqtt/commit/ffa0401907b66dcb2f28d40097913d491f172fe7))
+* **deps:** update actions/setup-go action to v7 ([6a5be50](https://github.com/JeffResc/hologram-mqtt/commit/6a5be503aa51773c1a89ecabadb0d9caa0b4031c))
+* **deps:** update actions/setup-go action to v7 ([39d3819](https://github.com/JeffResc/hologram-mqtt/commit/39d381922ff440ef40821691218a1022eafb12fd))
+* **deps:** update actions/setup-go digest to 924ae3a ([ddad05f](https://github.com/JeffResc/hologram-mqtt/commit/ddad05f83136329910bc52a70afeae6db13cb4a4))
+* **deps:** update actions/setup-go digest to 924ae3a ([34302bb](https://github.com/JeffResc/hologram-mqtt/commit/34302bb1656ec62f48c09bf00fd8f021f0fa00c4))
+* **deps:** update azure/setup-helm digest to 9bc31f4 ([dc9b0ac](https://github.com/JeffResc/hologram-mqtt/commit/dc9b0ac0520dab410cb964b379abe8f2fff8488c))
+* **deps:** update azure/setup-helm digest to 9bc31f4 ([55f2e77](https://github.com/JeffResc/hologram-mqtt/commit/55f2e7799af7a186b6d783c4dc7b640048716006))
+* **deps:** update docker/build-push-action digest to 53b7df9 ([54cb68f](https://github.com/JeffResc/hologram-mqtt/commit/54cb68f59dc2f476d1feda8a533f1e8c4476f21c))
+* **deps:** update docker/build-push-action digest to 53b7df9 ([84b869e](https://github.com/JeffResc/hologram-mqtt/commit/84b869ef50bf4e5f6f6dc016c83b9e2b7a4430c9))
+* **deps:** update docker/login-action digest to dbcb813 ([b096df3](https://github.com/JeffResc/hologram-mqtt/commit/b096df3f8002509aa5bf71e7a489a71e22360aaf))
+* **deps:** update docker/login-action digest to dbcb813 ([d50e300](https://github.com/JeffResc/hologram-mqtt/commit/d50e300b74a8af608f9104f897a5685f69bada35))
+* **deps:** update docker/metadata-action digest to dc80280 ([afb63cf](https://github.com/JeffResc/hologram-mqtt/commit/afb63cff92cb8bec2d75ac5cbb2c2c6ba5026a86))
+* **deps:** update docker/metadata-action digest to dc80280 ([6421d82](https://github.com/JeffResc/hologram-mqtt/commit/6421d82e196dd711d4590f83f8550f6afd1129ee))
+* **deps:** update docker/setup-buildx-action digest to bb05f3f ([951e333](https://github.com/JeffResc/hologram-mqtt/commit/951e333204ce1abfa6827002286d22ff203d5ed2))
+* **deps:** update docker/setup-buildx-action digest to bb05f3f ([4343dbe](https://github.com/JeffResc/hologram-mqtt/commit/4343dbe77f3675d6e5fc5984b53f50245d468209))
+* **deps:** update docker/setup-qemu-action digest to 96fe6ef ([e6d5fd8](https://github.com/JeffResc/hologram-mqtt/commit/e6d5fd8da5c8d1ee396990bb008b38f72e37a218))
+* **deps:** update docker/setup-qemu-action digest to 96fe6ef ([e237afd](https://github.com/JeffResc/hologram-mqtt/commit/e237afdccc7352161d3f2c7a5aa521868a1b5754))
+* **deps:** update gcr.io/distroless/static docker digest to 9197324 ([b40061a](https://github.com/JeffResc/hologram-mqtt/commit/b40061ab2952e41ccab75e435f564e8d9d3f7f5d))
+* **deps:** update gcr.io/distroless/static docker digest to 9197324 ([2ea07c7](https://github.com/JeffResc/hologram-mqtt/commit/2ea07c7c558edb13645f558130f1aba6af2f0d04))
+* **deps:** update go toolchain directive to v1.26.6 ([bbc18d8](https://github.com/JeffResc/hologram-mqtt/commit/bbc18d86b64507bcbe61462121940f2c819e1777))
+* **deps:** update go toolchain directive to v1.26.6 ([c54c8ab](https://github.com/JeffResc/hologram-mqtt/commit/c54c8ab56045c8481834064c687b6a38650e49b0))
+* **deps:** update golang:1.26-alpine docker digest to 70b4654 ([47a007a](https://github.com/JeffResc/hologram-mqtt/commit/47a007af5ac9803c506171bffe230a33436539c5))
+* **deps:** update golang:1.26-alpine docker digest to 70b4654 ([f091f30](https://github.com/JeffResc/hologram-mqtt/commit/f091f308f000125ca501ccccf0976b128e0cffcb))
+* **deps:** update golangci/golangci-lint-action digest to ba0d7d2 ([45c912e](https://github.com/JeffResc/hologram-mqtt/commit/45c912e25a4e766f5cc0a94ae0b9e698767c99c2))
+* **deps:** update golangci/golangci-lint-action digest to ba0d7d2 ([099c3ff](https://github.com/JeffResc/hologram-mqtt/commit/099c3ffbb95a1a227b4e19905752c3e255d83c17))
+* **deps:** update module github.com/prometheus/client_golang to v1.24.1 ([667458e](https://github.com/JeffResc/hologram-mqtt/commit/667458e6a7e0dc8b4109a196cc83ae3543291ea9))
+* **deps:** update module github.com/prometheus/client_golang to v1.24.1 ([9aad0d3](https://github.com/JeffResc/hologram-mqtt/commit/9aad0d3ed0bd0b971750ae21fa21247dfc0bd403))
+* **deps:** update module github.com/testcontainers/testcontainers-go to v0.44.0 ([d980b82](https://github.com/JeffResc/hologram-mqtt/commit/d980b82bfebd3076c369b24d8babfe7850845f47))
+* **deps:** update module github.com/testcontainers/testcontainers-go to v0.44.0 ([227558e](https://github.com/JeffResc/hologram-mqtt/commit/227558e437c998bf639038df92f2b327058a5fbd))
+
 ## [1.2.6](https://github.com/JeffResc/hologram-mqtt/compare/hologram-mqtt-v1.2.5...hologram-mqtt-v1.2.6) (2026-06-22)
 
 
