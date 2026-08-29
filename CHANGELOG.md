@@ -1,5 +1,31 @@
 # Changelog
 
+## [1.2.8](https://github.com/JeffResc/hologram-mqtt/compare/hologram-mqtt-v1.2.7...hologram-mqtt-v1.2.8) (2026-08-29)
+
+
+### Bug Fixes
+
+* **ci:** bump Go toolchain to 1.27 and govulncheck to v1.7.0 ([56e5b41](https://github.com/JeffResc/hologram-mqtt/commit/56e5b4169d16bfa09e6a3af576f5e10189afc5a2))
+* **ci:** bump Go toolchain to 1.27 and govulncheck to v1.7.0 ([0f89fc0](https://github.com/JeffResc/hologram-mqtt/commit/0f89fc01430534fcb03423104f4ccd685f89dd29))
+
+
+### Miscellaneous
+
+* **deps:** update dependency golangci/golangci-lint to v2.13.2 ([51da11a](https://github.com/JeffResc/hologram-mqtt/commit/51da11af658d0a5b0e018dd7b4c18c3bc523ed10))
+* **deps:** update dependency golangci/golangci-lint to v2.13.2 ([dd60020](https://github.com/JeffResc/hologram-mqtt/commit/dd600205af721c3a7161f471d086adbaa7007a23))
+* **deps:** update docker/setup-buildx-action digest to 37fe631 ([0e93a9a](https://github.com/JeffResc/hologram-mqtt/commit/0e93a9ac7cb30d743c812954905b877276fd6c4c))
+* **deps:** update docker/setup-buildx-action digest to 37fe631 ([b5135fa](https://github.com/JeffResc/hologram-mqtt/commit/b5135fafba86084049ef5cfcdb51702fda2b9973))
+* **deps:** update gcr.io/distroless/static docker digest to f2ea270 ([1b53c69](https://github.com/JeffResc/hologram-mqtt/commit/1b53c693a7f5edd886a3e271c19b167c32c36103))
+* **deps:** update gcr.io/distroless/static docker digest to f2ea270 ([01c1820](https://github.com/JeffResc/hologram-mqtt/commit/01c1820470858b639ddbfe3a33346936a5d85af8))
+* **deps:** update golang docker tag to v1.27 ([222e57c](https://github.com/JeffResc/hologram-mqtt/commit/222e57cfe350b234438068e0ab4a22c518a01e6f))
+* **deps:** update golang docker tag to v1.27 ([2342ed1](https://github.com/JeffResc/hologram-mqtt/commit/2342ed1550786774976c81db3571f7ef0b86429e))
+* **deps:** update module github.com/stretchr/testify to v1.12.1 ([4a7f182](https://github.com/JeffResc/hologram-mqtt/commit/4a7f1829dc1754fa65cf030f35412e39603c1420))
+* **deps:** update module github.com/stretchr/testify to v1.12.1 ([c0d78bb](https://github.com/JeffResc/hologram-mqtt/commit/c0d78bbcb84a28c5e04c76cde674986eaf19f776))
+* **deps:** update module golang.org/x/tools to v0.49.0 ([afd40e8](https://github.com/JeffResc/hologram-mqtt/commit/afd40e8219113e89ada15cef782909ae5bc52fdf))
+* **deps:** update module golang.org/x/tools to v0.49.0 ([5540e24](https://github.com/JeffResc/hologram-mqtt/commit/5540e24084f2b88ba6272cf579723acc0413fd58))
+* **renovate:** group Go toolchain deps in lockstep ([6d8d845](https://github.com/JeffResc/hologram-mqtt/commit/6d8d845eac332a6ad11c11693a00225c67c1231a))
+* **renovate:** group Go toolchain deps in lockstep ([df5c01a](https://github.com/JeffResc/hologram-mqtt/commit/df5c01acd843834ca0f7264f60422fed8762eabe))
+
 ## [1.2.7](https://github.com/JeffResc/hologram-mqtt/compare/hologram-mqtt-v1.2.6...hologram-mqtt-v1.2.7) (2026-08-14)
 
 
