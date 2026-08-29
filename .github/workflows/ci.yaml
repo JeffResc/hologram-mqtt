@@ -93,7 +93,7 @@ jobs:
 
       - name: Run deadcode
         run: |
-          go install golang.org/x/tools/cmd/deadcode@v0.45.0
+          go install golang.org/x/tools/cmd/deadcode@v0.49.0
           OUTPUT=$(deadcode -test ./...)
           if [ -n "$OUTPUT" ]; then
             echo "::error::deadcode found unreachable code:"
