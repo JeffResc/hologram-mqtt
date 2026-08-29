@@ -1,0 +1,61 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:recommended"
+  ],
+  "postUpdateOptions": [
+    "gomodTidy",
+    "gomodUpdateImportPaths"
+  ],
+  "customManagers": [
+    {
+      "customType": "regex",
+      "description": "Track the setup-go `go-version` literal in workflow run steps. Renovate's github-actions manager does not parse this input, so without a custom manager CI keeps validating on an old Go while go.mod and the golang Docker image advance. Mapped to the `go` dependency so it moves with the go-toolchain group.",
+      "managerFilePatterns": [
+        "/^\\.github/workflows/.+\\.ya?ml$/"
+      ],
+      "matchStrings": [
+        "go-version:\\s*\"(?<currentValue>[\\d.]+)\""
+      ],
+      "depNameTemplate": "go",
+      "datasourceTemplate": "golang-version"
+    },
+    {
+      "customType": "regex",
+      "description": "Track govulncheck pinned via `go install golang.org/x/vuln/cmd/govulncheck@vX` in workflow run steps, which no built-in manager parses. Needed so the go-toolchain group keeps govulncheck in lockstep with the Go release — its SSA builder panics on syntax from a newer stdlib.",
+      "managerFilePatterns": [
+        "/^\\.github/workflows/.+\\.ya?ml$/"
+      ],
+      "matchStrings": [
+        "go install golang\\.org/x/vuln/cmd/govulncheck@(?<currentValue>v[\\d.]+)"
+      ],
+      "depNameTemplate": "golang.org/x/vuln",
+      "datasourceTemplate": "go"
+    },
+    {
+      "customType": "regex",
+      "description": "Track deadcode pinned via `go install golang.org/x/tools/cmd/deadcode@vX` in workflow run steps, which no built-in manager parses. Needed so the go-toolchain group keeps deadcode in lockstep with the Go release — its SSA builder panics on syntax from a newer stdlib.",
+      "managerFilePatterns": [
+        "/^\\.github/workflows/.+\\.ya?ml$/"
+      ],
+      "matchStrings": [
+        "go install golang\\.org/x/tools/cmd/deadcode@(?<currentValue>v[\\d.]+)"
+      ],
+      "depNameTemplate": "golang.org/x/tools",
+      "datasourceTemplate": "go"
+    }
+  ],
+  "packageRules": [
+    {
+      "description": "Keep the Go toolchain and everything version-locked to it in one PR: the language version (go.mod directive + setup-go), the golang Docker image, golangci-lint, and the x/tools (deadcode) and x/vuln (govulncheck) analyzers. A Go bump that outpaces the tooling breaks CI — the analyzers' SSA builders panic on new syntax and golangci-lint hits typecheck errors on the new stdlib. Grouping forces CI to validate the whole set together instead of merging them piecemeal.",
+      "groupName": "go-toolchain",
+      "matchDepNames": [
+        "go",
+        "golang",
+        "golangci/golangci-lint",
+        "golang.org/x/tools",
+        "golang.org/x/vuln"
+      ]
+    }
+  ]
+}
