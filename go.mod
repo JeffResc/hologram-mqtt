@@ -2,7 +2,7 @@ module github.com/jeffresc/hologram-mqtt
 
 go 1.26
 
-toolchain go1.26.6
+toolchain go1.27.0
 
 require (
 	github.com/caarlos0/env/v11 v11.4.1
